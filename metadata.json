@@ -1,0 +1,6 @@
+{
+  "name": "The Reporter",
+  "description": "تطبيق The Reporter الإخباري العصري والشامل بتصميم أندرويد تفاعلي وسرعة فائقة، يدعم التصنيفات، إدارة المصادر، إمكانية حذف الأخبار، وتخصيص الألوان والخطوط.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
