@@ -29,6 +29,13 @@
   padding-bottom: env(safe-area-inset-bottom, 0.5rem);
 }
 
+/* Glassmorphism Header Effects */
+.AndroidHeader {
+  -webkit-backdrop-filter: blur(16px);
+  backdrop-filter: blur(16px);
+  will-change: transform, background-color, backdrop-filter;
+}
+
 /* Custom Scrollbars supporting Light and Dark modes */
 ::-webkit-scrollbar {
   width: 6px;

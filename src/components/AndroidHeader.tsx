@@ -1,27 +1,20 @@
 import React, { useState, useEffect } from 'react';
 import { 
-  Wifi, 
-  Battery, 
-  Search, 
+  Globe2, 
+  Settings, 
   Bell, 
-  SlidersHorizontal, 
   RefreshCw, 
-  Radio, 
-  Smartphone, 
-  Monitor, 
-  X, 
-  Volume2, 
-  VolumeX, 
-  LayoutGrid, 
-  Grid2X2, 
-  List, 
-  Rows, 
-  Flame, 
   Sun, 
   Moon, 
-  Globe2 
+  BookOpen, 
+  LayoutGrid, 
+  Search, 
+  X,
+  Radio,
+  SlidersHorizontal,
+  Flame
 } from 'lucide-react';
-import { AppSettings, DarkMode } from '../types';
+import { AppSettings, AppViewMode, NewsSource } from '../types';
 import { THEME_CONFIG, getBackgroundClasses } from '../utils/themeColors';
 import { getTranslation } from '../utils/translations';
 import { motion, AnimatePresence } from 'motion/react';
@@ -29,262 +22,288 @@ import { motion, AnimatePresence } from 'motion/react';
 interface AndroidHeaderProps {
   settings: AppSettings;
   onUpdateSettings: (newSettings: Partial<AppSettings>) => void;
+  onRefresh?: () => void;
+  onManualRefresh?: () => void;
+  isRefreshing: boolean;
   onOpenSettings: () => void;
   onOpenNotifications: () => void;
   onOpenWebsitesDrawer: () => void;
   unreadNotificationsCount: number;
-  onManualRefresh: () => void;
-  isRefreshing: boolean;
+  activeSourcesCount?: number;
+  totalSourcesCount?: number;
+  totalArticlesCount?: number;
   searchQuery: string;
   onSearchChange: (query: string) => void;
-  autoRefreshCountdown: number;
-  totalArticlesCount: number;
-  totalSourcesCount: number;
-  onTestChime?: () => void;
+  isScrolled?: boolean;
+  autoRefreshCountdown?: number;
 }
 
 export const AndroidHeader: React.FC<AndroidHeaderProps> = ({
   settings,
   onUpdateSettings,
+  onRefresh,
+  onManualRefresh,
+  isRefreshing,
   onOpenSettings,
   onOpenNotifications,
   onOpenWebsitesDrawer,
   unreadNotificationsCount,
-  onManualRefresh,
-  isRefreshing,
+  activeSourcesCount = 0,
+  totalSourcesCount = 0,
   searchQuery,
   onSearchChange,
-  autoRefreshCountdown,
-  totalArticlesCount,
-  totalSourcesCount,
-  onTestChime,
+  isScrolled: externalIsScrolled,
 }) => {
-  const [currentTime, setCurrentTime] = useState<string>('');
-  const [isSearchOpen, setIsSearchOpen] = useState<boolean>(false);
+  const [isSearchOpen, setIsSearchOpen] = useState(false);
+  const [currentTime, setCurrentTime] = useState('');
+  const [internalScrolled, setInternalScrolled] = useState(false);
+
+  const isScrolled = externalIsScrolled !== undefined ? externalIsScrolled : internalScrolled;
+  const handleRefresh = onRefresh || onManualRefresh || (() => {});
+
   const theme = THEME_CONFIG[settings.themeColor];
   const bgClasses = getBackgroundClasses(settings.darkMode);
 
+  // Scroll listener for dynamic glassmorphism
+  useEffect(() => {
+    const onScroll = () => {
+      setInternalScrolled(window.scrollY > 8);
+    };
+    window.addEventListener('scroll', onScroll, { passive: true });
+    onScroll();
+    return () => window.removeEventListener('scroll', onScroll);
+  }, []);
+
+  // Time simulation for Android status bar
   useEffect(() => {
     const updateTime = () => {
       const now = new Date();
-      setCurrentTime(now.toLocaleTimeString(settings.language === 'ar' ? 'ar-EG' : 'en-US', {
-        hour: '2-digit',
-        minute: '2-digit',
-        hour12: false
-      }));
+      setCurrentTime(
+        now.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', hour12: false })
+      );
     };
     updateTime();
-    const interval = setInterval(updateTime, 1000);
+    const interval = setInterval(updateTime, 30000);
     return () => clearInterval(interval);
-  }, [settings.language]);
+  }, []);
+
+  const toggleDarkMode = () => {
+    const nextMode = settings.darkMode === 'light' ? 'dark' : 'light';
+    onUpdateSettings({ darkMode: nextMode });
+  };
+
+  const isReading = settings.appViewMode === 'reading';
 
   return (
-    <header className={`w-full sticky top-0 z-30 transition-colors duration-200 ${bgClasses.header}`}>
-      {/* Android System Status Bar */}
-      <div className={`px-4 py-1.5 flex items-center justify-between text-xs font-mono select-none opacity-85 border-b border-slate-100/40 dark:border-blue-900/30 ${settings.darkMode === 'light' ? 'text-slate-600' : 'text-blue-200'}`}>
-        <div className="flex items-center gap-2 font-semibold">
+    <header
+      id="android-header-sticky"
+      className={`AndroidHeader sticky top-0 z-40 w-full transition-all duration-300 ${
+        isScrolled
+          ? 'bg-white/80 dark:bg-[#0a1128]/85 backdrop-blur-xl shadow-lg shadow-black/5 dark:shadow-blue-950/40 border-b border-slate-200/60 dark:border-blue-900/40 py-1.5'
+          : 'bg-white/95 dark:bg-[#0a1128]/95 backdrop-blur-md py-2.5 border-b border-slate-200/40 dark:border-blue-950/30'
+      }`}
+    >
+      {/* Top Simulated Android Status Bar (Minimalist) */}
+      <div className="max-w-7xl mx-auto px-4 flex items-center justify-between text-[11px] font-semibold text-slate-500 dark:text-blue-200/70 select-none pb-1.5 border-b border-slate-100 dark:border-blue-950/40">
+        <div className="flex items-center gap-1.5 font-mono">
           <span>{currentTime || '12:00'}</span>
-          <span className="text-[10px] px-2 py-0.5 rounded-full bg-slate-200/70 dark:bg-blue-950/70 text-slate-800 dark:text-blue-300 font-sans tracking-wide">
-            5G
-          </span>
         </div>
-        <div className="flex items-center gap-3">
-          {settings.autoRefreshInterval > 0 && (
-            <div className="flex items-center gap-1.5 text-[10px]" title="عداد التحديث التلقائي">
-              <span className="inline-block w-2 h-2 rounded-full bg-emerald-500 animate-ping" />
-              <span className="font-bold text-emerald-600 dark:text-emerald-400">{autoRefreshCountdown}s</span>
-            </div>
-          )}
-          <Wifi className="w-3.5 h-3.5 text-sky-400" />
-          <div className="flex items-center gap-1">
-            <span className="text-[10px]">98%</span>
-            <Battery className="w-3.5 h-3.5 fill-emerald-500 text-emerald-500" />
-          </div>
+
+        <div className="flex items-center gap-2">
+          {/* Active Websites Badge */}
+          <button
+            type="button"
+            onClick={onOpenWebsitesDrawer}
+            title={getTranslation(settings.language, 'websitesDrawerTitle')}
+            className="flex items-center gap-1 text-[10px] font-bold text-sky-600 dark:text-sky-400 bg-sky-50 dark:bg-sky-950/60 px-2 py-0.5 rounded-full hover:bg-sky-100 transition-colors"
+          >
+            <Globe2 className="w-3 h-3" />
+            <span>{activeSourcesCount}/{totalSourcesCount} {getTranslation(settings.language, 'sources')}</span>
+          </button>
+
+          {/* Quick Light/Dark Toggle */}
+          <button
+            type="button"
+            id="quick-theme-toggle-btn"
+            onClick={toggleDarkMode}
+            title={getTranslation(settings.language, 'toggleLightDark')}
+            className="p-1 rounded-full text-slate-600 dark:text-blue-300 hover:bg-slate-200/60 dark:hover:bg-blue-900/50 transition-colors"
+          >
+            {settings.darkMode === 'light' ? (
+              <Moon className="w-3.5 h-3.5 text-indigo-600" />
+            ) : (
+              <Sun className="w-3.5 h-3.5 text-amber-400" />
+            )}
+          </button>
         </div>
       </div>
 
-      {/* Main App Bar */}
-      <div className="px-4 py-3 flex items-center justify-between gap-2.5">
-        {/* Logo & Branding */}
-        <div className="flex items-center gap-3 min-w-0">
-          <div className={`w-10 h-10 rounded-2xl flex items-center justify-center shadow-lg bg-gradient-to-tr ${theme.gradient} text-white shrink-0`}>
-            <Radio className="w-5 h-5 animate-pulse text-amber-300" />
+      {/* Main Interactive Header Bar */}
+      <div className="max-w-7xl mx-auto px-4 flex items-center justify-between gap-2.5 pt-1.5">
+        {/* Brand & App Title */}
+        <div className="flex items-center gap-2.5 shrink-0">
+          <div className={`w-9 h-9 rounded-2xl flex items-center justify-center text-white shadow-md shadow-blue-600/20 ${theme.primary}`}>
+            <span className="font-extrabold text-base tracking-tighter">TR</span>
           </div>
-          <div className="truncate">
+          <div>
             <div className="flex items-center gap-1.5">
-              <h1 className="font-extrabold text-base sm:text-xl tracking-tight flex items-center gap-1.5">
-                <span>{getTranslation(settings.language, 'appName')}</span>
+              <h1 className="font-black text-base sm:text-lg tracking-tight leading-none">
+                {getTranslation(settings.language, 'appName')}
               </h1>
-              <span className={`text-[9px] sm:text-[10px] font-extrabold uppercase tracking-wider px-2 py-0.5 rounded-full ${theme.primary} text-white shadow-xs`}>
-                Live
-              </span>
+              <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
             </div>
-            <p className={`text-[11px] truncate ${bgClasses.muted}`}>
-              {getTranslation(settings.language, 'appSubtitle')} • {totalArticlesCount} {getTranslation(settings.language, 'newsCount', { n: '' })}
+            <p className="text-[10px] font-medium text-slate-400 dark:text-blue-200/50 leading-tight hidden sm:block">
+              {getTranslation(settings.language, 'appSubtitle')}
             </p>
           </div>
         </div>
 
-        {/* Action Buttons with Rich Graphic Colors & Borderless Design */}
-        <div className="flex items-center gap-1.5 sm:gap-2">
-          {/* Websites & Sources Right Drawer Toggle */}
+        {/* Center: Quick Reading / Browsing Toggle Pill (زر التبديل السريع بين وضع القراءة والتصفح) */}
+        <div className="flex items-center justify-center">
+          <div className="bg-slate-200/70 dark:bg-[#0f1a3a] p-1 rounded-2xl flex items-center gap-1 shadow-inner select-none">
+            {/* Browsing Button */}
+            <button
+              type="button"
+              id="mode-browsing-toggle-btn"
+              onClick={() => onUpdateSettings({ appViewMode: 'browsing' })}
+              title={getTranslation(settings.language, 'browsingModeDesc')}
+              className={`flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-bold transition-all relative ${
+                !isReading
+                  ? `${theme.primary} text-white shadow-md shadow-blue-600/30 scale-100`
+                  : 'text-slate-600 dark:text-blue-200/70 hover:text-slate-900 dark:hover:text-white'
+              }`}
+            >
+              <LayoutGrid className="w-3.5 h-3.5" />
+              <span>{getTranslation(settings.language, 'browsingMode')}</span>
+            </button>
+
+            {/* Reading Button */}
+            <button
+              type="button"
+              id="mode-reading-toggle-btn"
+              onClick={() => onUpdateSettings({ appViewMode: 'reading' })}
+              title={getTranslation(settings.language, 'readingModeDesc')}
+              className={`flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-bold transition-all relative ${
+                isReading
+                  ? `${theme.primary} text-white shadow-md shadow-blue-600/30 scale-100`
+                  : 'text-slate-600 dark:text-blue-200/70 hover:text-slate-900 dark:hover:text-white'
+              }`}
+            >
+              <BookOpen className="w-3.5 h-3.5" />
+              <span>{getTranslation(settings.language, 'readingMode')}</span>
+            </button>
+          </div>
+        </div>
+
+        {/* Right Action Icons: Search, Dedicated Websites Drawer Icon, Refresh, Notifications, Settings */}
+        <div className="flex items-center gap-1.5 shrink-0">
+          {/* Search Trigger */}
           <button
-            id="open-websites-drawer-header-btn"
-            onClick={onOpenWebsitesDrawer}
-            title={getTranslation(settings.language, 'websitesDrawerTitle')}
-            className={`p-2 sm:px-3 sm:py-2 rounded-2xl transition-all relative flex items-center gap-1.5 shadow-xs ${theme.primaryLight} ${bgClasses.hover}`}
+            type="button"
+            id="header-search-toggle-btn"
+            onClick={() => setIsSearchOpen(!isSearchOpen)}
+            className={`p-2 rounded-2xl transition-all ${
+              isSearchOpen 
+                ? 'bg-blue-600 text-white' 
+                : `${bgClasses.card} ${bgClasses.hover} text-slate-700 dark:text-blue-100`
+            }`}
+            title="بحث"
           >
-            <Globe2 className={`w-4 h-4 ${theme.primaryText}`} />
-            <span className="hidden md:inline text-xs font-bold">المواقع</span>
-            <span className={`min-w-[18px] h-[18px] px-1 ${theme.primary} text-white text-[9px] font-bold rounded-full flex items-center justify-center shadow-xs`}>
-              {totalSourcesCount}
+            {isSearchOpen ? <X className="w-4 h-4" /> : <Search className="w-4 h-4" />}
+          </button>
+
+          {/* DEDICATED WEBSITES ICON (وضع أسماء المواقع في مكان مستقل في أيقونة بدل أيقونة الصوت) */}
+          <button
+            type="button"
+            id="header-websites-drawer-btn"
+            onClick={onOpenWebsitesDrawer}
+            title={getTranslation(settings.language, 'manageSources')}
+            className={`p-2 rounded-2xl transition-all relative ${bgClasses.card} ${bgClasses.hover} text-sky-600 dark:text-sky-400 group`}
+          >
+            <Globe2 className="w-4 h-4 transition-transform group-hover:scale-110" />
+            <span className="absolute -top-1 -right-1 px-1 min-w-[15px] h-[15px] bg-sky-600 text-white text-[8px] font-extrabold rounded-full flex items-center justify-center shadow-xs">
+              {activeSourcesCount}
             </span>
           </button>
 
-          {/* Search Toggle */}
-          <div className="relative">
-            <AnimatePresence>
-              {isSearchOpen ? (
-                <motion.div
-                  initial={{ width: 0, opacity: 0 }}
-                  animate={{ width: 220, opacity: 1 }}
-                  exit={{ width: 0, opacity: 0 }}
-                  className="flex items-center"
-                >
-                  <div className="relative w-full">
-                    <input
-                      type="text"
-                      id="news-search-input"
-                      value={searchQuery}
-                      onChange={(e) => onSearchChange(e.target.value)}
-                      placeholder={getTranslation(settings.language, 'searchPlaceholder')}
-                      autoFocus
-                      className={`w-full py-2 px-3 pr-8 text-xs rounded-2xl focus:outline-none ${theme.ring} focus:ring-2 shadow-xs ${
-                        settings.darkMode === 'oled'
-                          ? 'bg-[#060b18] text-white'
-                          : settings.darkMode === 'dark'
-                          ? 'bg-[#0a1128] text-white'
-                          : 'bg-slate-100 text-slate-900'
-                      }`}
-                    />
-                    <button
-                      id="close-search-btn"
-                      onClick={() => {
-                        setIsSearchOpen(false);
-                        onSearchChange('');
-                      }}
-                      className="absolute left-2 top-1/2 -translate-y-1/2 p-1 text-slate-400 hover:text-slate-600"
-                    >
-                      <X className="w-3.5 h-3.5" />
-                    </button>
-                  </div>
-                </motion.div>
-              ) : (
-                <button
-                  id="open-search-btn"
-                  onClick={() => setIsSearchOpen(true)}
-                  title={getTranslation(settings.language, 'searchPlaceholder')}
-                  className={`p-2 rounded-2xl transition-all shadow-xs ${bgClasses.elevated} ${bgClasses.hover}`}
-                >
-                  <Search className="w-4 h-4 text-sky-500" />
-                </button>
-              )}
-            </AnimatePresence>
-          </div>
-
-          {/* Manual Refresh Button */}
+          {/* Refresh Button */}
           <button
-            id="manual-refresh-btn"
-            onClick={onManualRefresh}
+            type="button"
+            id="header-refresh-btn"
+            onClick={handleRefresh}
             disabled={isRefreshing}
             title={getTranslation(settings.language, 'refreshNow')}
-            className={`p-2 rounded-2xl transition-all relative shadow-xs ${bgClasses.elevated} ${bgClasses.hover}`}
+            className={`p-2 rounded-2xl transition-all ${bgClasses.card} ${bgClasses.hover} text-slate-700 dark:text-blue-100 disabled:opacity-50`}
           >
-            <RefreshCw className={`w-4 h-4 ${isRefreshing ? 'animate-spin text-emerald-500' : 'text-emerald-500'}`} />
+            <RefreshCw className={`w-4 h-4 ${isRefreshing ? 'animate-spin text-blue-500' : ''}`} />
           </button>
 
-          {/* Notifications Center */}
+          {/* Notifications Button */}
           <button
-            id="notifications-toggle-btn"
+            type="button"
+            id="header-notifications-btn"
             onClick={onOpenNotifications}
             title={getTranslation(settings.language, 'notifications')}
-            className={`p-2 rounded-2xl transition-all relative shadow-xs ${bgClasses.elevated} ${bgClasses.hover}`}
+            className={`p-2 rounded-2xl transition-all relative ${bgClasses.card} ${bgClasses.hover} text-slate-700 dark:text-blue-100`}
           >
-            <Bell className="w-4 h-4 text-amber-500" />
+            <Bell className="w-4 h-4" />
             {unreadNotificationsCount > 0 && (
-              <span className={`absolute -top-1 -right-1 min-w-[18px] h-[18px] px-1 bg-red-600 text-white text-[9px] font-extrabold rounded-full flex items-center justify-center shadow-md animate-pulse`}>
-                {unreadNotificationsCount > 9 ? '9+' : unreadNotificationsCount}
+              <span className="absolute -top-1 -right-1 px-1 min-w-[15px] h-[15px] bg-rose-600 text-white text-[8px] font-extrabold rounded-full flex items-center justify-center shadow-xs animate-bounce">
+                {unreadNotificationsCount}
               </span>
             )}
           </button>
 
-          {/* Device Shell View Toggle */}
+          {/* Settings Button */}
           <button
-            id="toggle-view-mode-btn"
-            onClick={() => onUpdateSettings({
-              viewMode: settings.viewMode === 'mobile-frame' ? 'responsive-fluid' : 'mobile-frame'
-            })}
-            title={settings.viewMode === 'mobile-frame' ? getTranslation(settings.language, 'fluidView') : getTranslation(settings.language, 'mobileView')}
-            className={`hidden sm:flex p-2 rounded-2xl transition-all shadow-xs ${bgClasses.elevated} ${bgClasses.hover}`}
-          >
-            {settings.viewMode === 'mobile-frame' ? (
-              <Monitor className="w-4 h-4 text-indigo-400" />
-            ) : (
-              <Smartphone className={`w-4 h-4 ${theme.primaryText}`} />
-            )}
-          </button>
-
-          {/* Quick Audio Alert Chime Toggle */}
-          <button
-            id="quick-audio-chime-btn"
-            onClick={() => {
-              if (!settings.audioChimeEnabled) {
-                onUpdateSettings({ audioChimeEnabled: true });
-              }
-              onTestChime?.();
-            }}
-            title={settings.audioChimeEnabled ? getTranslation(settings.language, 'audioChimeActive') : getTranslation(settings.language, 'audioChimeMuted')}
-            className={`p-2 rounded-2xl transition-all shadow-xs ${
-              settings.audioChimeEnabled 
-                ? 'bg-emerald-50 dark:bg-emerald-950/50 text-emerald-600 dark:text-emerald-400' 
-                : `${bgClasses.elevated} text-slate-400 opacity-60`
-            }`}
-          >
-            {settings.audioChimeEnabled ? (
-              <Volume2 className="w-4 h-4" />
-            ) : (
-              <VolumeX className="w-4 h-4" />
-            )}
-          </button>
-
-          {/* Quick Light / Dark Blue Theme Switcher */}
-          <button
-            id="quick-theme-toggle-btn"
-            onClick={() => {
-              const nextMode: DarkMode = settings.darkMode === 'light' ? 'dark' : 'light';
-              onUpdateSettings({ darkMode: nextMode });
-            }}
-            title={getTranslation(settings.language, 'toggleLightDark')}
-            className={`p-2 rounded-2xl transition-all shadow-xs ${bgClasses.elevated} ${bgClasses.hover}`}
-          >
-            {settings.darkMode === 'light' ? (
-              <Moon className="w-4 h-4 text-blue-600" />
-            ) : (
-              <Sun className="w-4 h-4 text-amber-400" />
-            )}
-          </button>
-
-          {/* Quick Settings */}
-          <button
-            id="open-settings-header-btn"
+            type="button"
+            id="header-settings-btn"
             onClick={onOpenSettings}
             title={getTranslation(settings.language, 'settings')}
-            className={`p-2 rounded-2xl transition-all shadow-xs ${bgClasses.elevated} ${bgClasses.hover}`}
+            className={`p-2 rounded-2xl transition-all ${bgClasses.card} ${bgClasses.hover} text-slate-700 dark:text-blue-100`}
           >
-            <SlidersHorizontal className="w-4 h-4 text-indigo-500" />
+            <SlidersHorizontal className="w-4 h-4" />
           </button>
         </div>
       </div>
+
+      {/* Expandable Fast Search Bar */}
+      <AnimatePresence>
+        {isSearchOpen && (
+          <motion.div
+            initial={{ height: 0, opacity: 0 }}
+            animate={{ height: 'auto', opacity: 1 }}
+            exit={{ height: 0, opacity: 0 }}
+            className="overflow-hidden max-w-7xl mx-auto px-4 pt-2.5 pb-1"
+          >
+            <div className="relative flex items-center">
+              <Search className="w-4 h-4 absolute right-3.5 text-slate-400 pointer-events-none" />
+              <input
+                type="text"
+                id="header-search-input"
+                value={searchQuery}
+                onChange={(e) => onSearchChange(e.target.value)}
+                placeholder={getTranslation(settings.language, 'searchPlaceholder')}
+                autoFocus
+                className={`w-full pr-10 pl-10 py-2.5 rounded-2xl text-xs font-semibold focus:outline-none focus:ring-2 ${theme.ring} shadow-inner ${
+                  settings.darkMode === 'light'
+                    ? 'bg-slate-100 text-slate-900 placeholder:text-slate-400'
+                    : 'bg-[#0e1938] text-white placeholder:text-blue-300/40'
+                }`}
+              />
+              {searchQuery && (
+                <button
+                  type="button"
+                  onClick={() => onSearchChange('')}
+                  className="absolute left-3 p-1 rounded-full text-slate-400 hover:text-slate-600 dark:hover:text-white"
+                >
+                  <X className="w-3.5 h-3.5" />
+                </button>
+              )}
+            </div>
+          </motion.div>
+        )}
+      </AnimatePresence>
     </header>
   );
 };

@@ -3,12 +3,11 @@ import {
   Home, 
   Flame, 
   Bookmark, 
-  Globe, 
+  Globe2, 
   SlidersHorizontal 
 } from 'lucide-react';
 import { AppSettings } from '../types';
 import { THEME_CONFIG, getBackgroundClasses } from '../utils/themeColors';
-import { motion } from 'motion/react';
 
 export type MainTab = 'home' | 'breaking' | 'favorites' | 'sources' | 'settings';
 
@@ -30,12 +29,12 @@ export const BottomNavBar: React.FC<BottomNavBarProps> = ({
   const theme = THEME_CONFIG[settings.themeColor];
   const bgClasses = getBackgroundClasses(settings.darkMode);
 
-  const TABS: { id: MainTab; labelAr: string; labelEn: string; labelFr: string; icon: React.ElementType; color: string; badge?: number; isPrimary?: boolean }[] = [
-    { id: 'home', labelAr: 'الرئيسية', labelEn: 'Home', labelFr: 'Accueil', icon: Home, color: 'text-indigo-500', isPrimary: true },
-    { id: 'breaking', labelAr: 'عاجل', labelEn: 'Breaking', labelFr: 'Flash', icon: Flame, color: 'text-rose-500', badge: breakingCount },
-    { id: 'favorites', labelAr: 'المفضلة', labelEn: 'Saved', labelFr: 'Favoris', icon: Bookmark, color: 'text-amber-500', badge: favoritesCount },
-    { id: 'sources', labelAr: 'المصادر', labelEn: 'Sources', labelFr: 'Sources', icon: Globe, color: 'text-sky-500' },
-    { id: 'settings', labelAr: 'الإعدادات', labelEn: 'Settings', labelFr: 'Options', icon: SlidersHorizontal, color: 'text-purple-500' },
+  const TABS: { id: MainTab; labelAr: string; labelEn: string; icon: React.ElementType; color: string; badge?: number; isPrimary?: boolean }[] = [
+    { id: 'home', labelAr: 'الرئيسية', labelEn: 'Home', icon: Home, color: 'text-indigo-500', isPrimary: true },
+    { id: 'breaking', labelAr: 'عاجل', labelEn: 'Breaking', icon: Flame, color: 'text-rose-500', badge: breakingCount },
+    { id: 'favorites', labelAr: 'المفضلة', labelEn: 'Saved', icon: Bookmark, color: 'text-amber-500', badge: favoritesCount },
+    { id: 'sources', labelAr: 'المواقع', labelEn: 'Websites', icon: Globe2, color: 'text-sky-500' },
+    { id: 'settings', labelAr: 'الإعدادات', labelEn: 'Settings', icon: SlidersHorizontal, color: 'text-purple-500' },
   ];
 
   return (
@@ -45,7 +44,7 @@ export const BottomNavBar: React.FC<BottomNavBarProps> = ({
           const isActive = activeTab === tab.id;
           const isHome = tab.id === 'home';
           const Icon = tab.icon;
-          const label = settings.language === 'en' ? tab.labelEn : settings.language === 'fr' ? tab.labelFr : tab.labelAr;
+          const label = settings.language === 'en' ? tab.labelEn : tab.labelAr;
 
           if (isHome) {
             return (
@@ -81,7 +80,7 @@ export const BottomNavBar: React.FC<BottomNavBarProps> = ({
               <div className="relative">
                 <Icon className={`w-5 h-5 transition-transform ${isActive ? 'scale-110 stroke-[2.5] ' + theme.primaryText : tab.color}`} />
                 {tab.badge !== undefined && tab.badge > 0 && (
-                  <span className={`absolute -top-1.5 -right-2 px-1 min-w-[15px] h-[15px] bg-red-600 text-white text-[8px] font-extrabold rounded-full flex items-center justify-center shadow-xs`}>
+                  <span className="absolute -top-1.5 -right-2 px-1 min-w-[15px] h-[15px] bg-red-600 text-white text-[8px] font-extrabold rounded-full flex items-center justify-center shadow-xs">
                     {tab.badge > 99 ? '99+' : tab.badge}
                   </span>
                 )}

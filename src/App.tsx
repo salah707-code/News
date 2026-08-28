@@ -1,17 +1,12 @@
-import React, { useState, useEffect, useMemo, useCallback } from 'react';
+import React, { useState, useEffect, useMemo, useCallback, useRef } from 'react';
 import { 
   NewsArticle, 
   NewsSource, 
   AppSettings, 
   NotificationItem, 
-  ThemeColor, 
-  DarkMode, 
-  FontSize, 
-  ReadingSpeed, 
-  Language 
+  ReadingSpeed 
 } from './types';
 import { 
-  DEFAULT_CATEGORIES, 
   DEFAULT_SOURCES, 
   INITIAL_ARTICLES 
 } from './data/defaultNews';
@@ -25,35 +20,28 @@ import { SourceManagerModal } from './components/SourceManagerModal';
 import { SettingsModal } from './components/SettingsModal';
 import { NotificationsDrawer } from './components/NotificationsDrawer';
 import { BottomNavBar, MainTab } from './components/BottomNavBar';
-import { AudioNewsPlayer } from './components/AudioNewsPlayer';
 import { THEME_CONFIG, getBackgroundClasses } from './utils/themeColors';
 import { getTranslation } from './utils/translations';
 import { 
-  Sparkles, 
   Flame, 
-  RefreshCw, 
-  Filter, 
-  Layers, 
-  TrendingUp, 
   AlertCircle,
   Globe2,
-  Smartphone,
-  Monitor,
   LayoutGrid,
   Grid2X2,
   List,
   Rows,
-  X
+  X,
+  Sparkles
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 import confetti from 'canvas-confetti';
 
 const STORAGE_KEYS = {
-  SETTINGS: 'nabdh_news_settings_v2',
-  ARTICLES: 'nabdh_news_articles_v2',
-  SOURCES: 'nabdh_news_sources_v2',
-  BOOKMARKS: 'nabdh_news_bookmarks_v2',
-  NOTIFICATIONS: 'nabdh_news_notifs_v2',
+  SETTINGS: 'nabdh_news_settings_v3',
+  ARTICLES: 'nabdh_news_articles_v3',
+  SOURCES: 'nabdh_news_sources_v3',
+  BOOKMARKS: 'nabdh_news_bookmarks_v3',
+  NOTIFICATIONS: 'nabdh_news_notifs_v3',
 };
 
 const DEFAULT_SETTINGS: AppSettings = {
@@ -66,6 +54,7 @@ const DEFAULT_SETTINGS: AppSettings = {
   notificationsEnabled: true,
   audioChimeEnabled: true,
   viewMode: 'responsive-fluid',
+  appViewMode: 'browsing',
   breakingNewsOnly: false,
 };
 
@@ -132,7 +121,6 @@ export function App() {
 
   // UI Navigation & Dialog States
   const [activeTab, setActiveTab] = useState<MainTab>('home');
-  const [selectedCategory, setSelectedCategory] = useState<string>('all');
   const [selectedSourceId, setSelectedSourceId] = useState<string | null>(null);
   const [searchQuery, setSearchQuery] = useState<string>('');
   const [selectedArticle, setSelectedArticle] = useState<NewsArticle | null>(null);
@@ -142,17 +130,18 @@ export function App() {
   const [isNotificationsOpen, setIsNotificationsOpen] = useState(false);
   const [isRefreshing, setIsRefreshing] = useState(false);
   const [autoRefreshCountdown, setAutoRefreshCountdown] = useState(settings.autoRefreshInterval || 60);
-  const [currentAudioTrack, setCurrentAudioTrack] = useState<{ title: string; text: string } | null>(null);
   const [toastMessage, setToastMessage] = useState<string | null>(null);
+
+  const isNavigatingBackRef = useRef(false);
 
   const triggerToast = useCallback((msg: string) => {
     setToastMessage(msg);
     setTimeout(() => {
       setToastMessage(null);
-    }, 2800);
+    }, 2500);
   }, []);
 
-  // Sync to local storage & update body colors (Rich Blue Dark Mode)
+  // Sync to local storage & update body colors (Midnight Navy & Light Mode)
   useEffect(() => {
     localStorage.setItem(STORAGE_KEYS.SETTINGS, JSON.stringify(settings));
     document.documentElement.dir = settings.language === 'ar' ? 'rtl' : 'ltr';
@@ -165,7 +154,7 @@ export function App() {
       document.body.className = 'bg-[#0a1128] text-slate-100 selection:bg-blue-600 selection:text-white';
     } else {
       document.documentElement.classList.remove('dark');
-      document.body.className = 'bg-slate-100/70 text-slate-900 selection:bg-blue-600 selection:text-white';
+      document.body.className = 'bg-slate-100/80 text-slate-900 selection:bg-blue-600 selection:text-white';
     }
   }, [settings]);
 
@@ -185,42 +174,72 @@ export function App() {
     localStorage.setItem(STORAGE_KEYS.NOTIFICATIONS, JSON.stringify(notifications));
   }, [notifications]);
 
-  // Audio Alert Chime
-  const playNotificationChime = useCallback((forcePlay = false) => {
-    if (!settings.audioChimeEnabled && !forcePlay) return;
-    try {
-      const AudioCtx = window.AudioContext || (window as any).webkitAudioContext;
-      if (!AudioCtx) return;
-      const audioCtx = new AudioCtx();
-      if (audioCtx.state === 'suspended') {
-        audioCtx.resume();
+  // Back Navigation Handler (عند العودة للخلف يعود للتطبيق و ليس لمغادرته)
+  useEffect(() => {
+    // Push an initial state if history is empty
+    window.history.replaceState({ page: 'root' }, '');
+
+    const handlePopState = (event: PopStateEvent) => {
+      isNavigatingBackRef.current = true;
+
+      // Hierarchy of back navigation:
+      if (selectedArticle) {
+        setSelectedArticle(null);
+        return;
+      }
+      if (isWebsitesDrawerOpen) {
+        setIsWebsitesDrawerOpen(false);
+        return;
+      }
+      if (isSettingsOpen) {
+        setIsSettingsOpen(false);
+        return;
+      }
+      if (isNotificationsOpen) {
+        setIsNotificationsOpen(false);
+        return;
+      }
+      if (isSourceManagerOpen) {
+        setIsSourceManagerOpen(false);
+        return;
+      }
+      if (searchQuery) {
+        setSearchQuery('');
+        return;
+      }
+      if (selectedSourceId !== null) {
+        setSelectedSourceId(null);
+        return;
+      }
+      if (activeTab !== 'home') {
+        setActiveTab('home');
+        return;
       }
 
-      const now = audioCtx.currentTime;
-      const playBellTone = (freq: number, start: number, duration: number, vol = 0.14) => {
-        const osc = audioCtx.createOscillator();
-        const gain = audioCtx.createGain();
-        osc.type = 'sine';
-        osc.frequency.setValueAtTime(freq, start);
-        gain.gain.setValueAtTime(vol, start);
-        gain.gain.exponentialRampToValueAtTime(0.0001, start + duration);
-        osc.connect(gain);
-        gain.connect(audioCtx.destination);
-        osc.start(start);
-        osc.stop(start + duration);
-      };
+      // If at root and user clicks back, re-push so they don't exit accidentally
+      window.history.pushState({ page: 'root' }, '');
+      triggerToast('اضغط مرة أخرى للخروج أو تصفح المزيد');
+    };
 
-      // Multi-tone crystal alert chime
-      playBellTone(523.25, now, 0.35, 0.12);        // C5
-      playBellTone(659.25, now + 0.08, 0.35, 0.12); // E5
-      playBellTone(783.99, now + 0.16, 0.45, 0.14); // G5
-      playBellTone(1046.5, now + 0.24, 0.6, 0.16);  // C6
+    window.addEventListener('popstate', handlePopState);
+    return () => window.removeEventListener('popstate', handlePopState);
+  }, [
+    selectedArticle,
+    isWebsitesDrawerOpen,
+    isSettingsOpen,
+    isNotificationsOpen,
+    isSourceManagerOpen,
+    searchQuery,
+    selectedSourceId,
+    activeTab,
+    triggerToast
+  ]);
 
-      triggerToast('🔔 تم إطلاق التنبيه الصوتي بنجاح');
-    } catch (e) {
-      console.warn('Audio chime warning:', e);
-    }
-  }, [settings.audioChimeEnabled, triggerToast]);
+  // Push state when opening modals or drilling down
+  const openModalWithHistory = useCallback((openFn: () => void) => {
+    window.history.pushState({ page: 'modal' }, '');
+    openFn();
+  }, []);
 
   // Fetch Live RSS Feeds
   const fetchLiveFeeds = useCallback(async () => {
@@ -231,7 +250,7 @@ export function App() {
       setTimeout(() => {
         setIsRefreshing(false);
         setAutoRefreshCountdown(settings.autoRefreshInterval || 60);
-      }, 700);
+      }, 600);
       return;
     }
 
@@ -259,7 +278,8 @@ export function App() {
             link: item.link,
             isBreaking: Math.random() > 0.7,
             readTimeMinutes: Math.floor(Math.random() * 3) + 2,
-            viewsCount: Math.floor(Math.random() * 800) + 100
+            viewsCount: Math.floor(Math.random() * 800) + 100,
+            isForeign: src.isForeign
           } as NewsArticle));
         } catch (e) {
           return [];
@@ -273,20 +293,6 @@ export function App() {
         setArticles((prev) => {
           const existingIds = new Set(prev.map(a => a.id));
           const uniqueNew = newArticles.filter(a => !existingIds.has(a.id));
-          if (uniqueNew.length > 0 && settings.notificationsEnabled) {
-            const breakingStory = uniqueNew.find(a => a.isBreaking) || uniqueNew[0];
-            const newNotif: NotificationItem = {
-              id: `notif-${Date.now()}`,
-              title: `خبر عاجل: ${breakingStory.source}`,
-              body: breakingStory.title,
-              time: 'الآن',
-              read: false,
-              articleId: breakingStory.id,
-              isBreaking: true
-            };
-            setNotifications(n => [newNotif, ...n]);
-            playNotificationChime();
-          }
           return [...uniqueNew.slice(0, 10), ...prev].slice(0, 60);
         });
       }
@@ -296,7 +302,7 @@ export function App() {
       setIsRefreshing(false);
       setAutoRefreshCountdown(settings.autoRefreshInterval || 60);
     }
-  }, [sources, settings.autoRefreshInterval, settings.notificationsEnabled, playNotificationChime]);
+  }, [sources, settings.autoRefreshInterval]);
 
   // Auto-refresh timer
   useEffect(() => {
@@ -325,8 +331,8 @@ export function App() {
       } else {
         try {
           confetti({
-            particleCount: 30,
-            spread: 50,
+            particleCount: 25,
+            spread: 45,
             origin: { y: 0.8 }
           });
         } catch (e) {}
@@ -335,7 +341,7 @@ export function App() {
     });
   };
 
-  // Delete Article Handler (Direct click & Swipe to Delete)
+  // Delete Article Handler (Swipe to Delete or Click)
   const handleDeleteArticle = useCallback((articleToDelete: NewsArticle) => {
     setArticles((prev) => prev.filter(a => a.id !== articleToDelete.id));
     setBookmarkedIds((prev) => prev.filter(id => id !== articleToDelete.id));
@@ -385,17 +391,6 @@ export function App() {
     setArticles(INITIAL_ARTICLES);
   };
 
-  // Category counts computation
-  const categoryCounts = useMemo(() => {
-    const counts: Record<string, number> = { all: articles.length };
-    DEFAULT_CATEGORIES.forEach(cat => {
-      if (cat.id !== 'all') {
-        counts[cat.id] = articles.filter(a => a.category === cat.id).length;
-      }
-    });
-    return counts;
-  }, [articles]);
-
   // Source counts computation (Live count of articles per website)
   const sourceCounts = useMemo(() => {
     const counts: Record<string, number> = {};
@@ -410,21 +405,19 @@ export function App() {
     return counts;
   }, [articles, sources]);
 
-  // Filtered Articles for Home / Breaking view (with website source filter support)
+  // Filtered Articles based on Website Source Selection
   const displayArticles = useMemo(() => {
     return articles.filter((art) => {
-      // Source filter if user picked a specific website from right drawer
+      // Source filter
       if (selectedSourceId) {
         const matchedSource = sources.find(s => s.id === selectedSourceId);
         const matches = art.sourceId === selectedSourceId || (matchedSource && art.source.toLowerCase() === matchedSource.name.toLowerCase());
         if (!matches) return false;
       }
 
-      // Category filter
+      // Tab filter
       if (activeTab === 'breaking') {
         if (!art.isBreaking) return false;
-      } else if (selectedCategory !== 'all' && art.category !== selectedCategory) {
-        return false;
       }
 
       // Search query filter
@@ -439,7 +432,7 @@ export function App() {
 
       return true;
     });
-  }, [articles, selectedCategory, selectedSourceId, searchQuery, activeTab, sources]);
+  }, [articles, selectedSourceId, searchQuery, activeTab, sources]);
 
   // Breaking Articles list
   const breakingArticles = useMemo(() => {
@@ -465,29 +458,16 @@ export function App() {
 
   return (
     <div className={`min-h-screen flex flex-col font-sans transition-colors duration-200 ${bgClasses.bg}`}>
-      {/* Device Shell Wrap if mobile-frame mode enabled */}
-      <div className={`w-full flex-1 flex flex-col items-center justify-start ${settings.viewMode === 'mobile-frame' ? 'py-4 sm:py-8 px-2 sm:px-4' : ''}`}>
+      <div className="w-full flex-1 flex flex-col items-center justify-start">
         
-        <div className={`w-full flex flex-col flex-1 ${
-          settings.viewMode === 'mobile-frame' 
-            ? `max-w-[430px] rounded-[48px] ${settings.darkMode === 'light' ? 'bg-white shadow-[0_25px_60px_-15px_rgba(0,0,0,0.15)]' : 'bg-[#0a1128] shadow-[0_25px_60px_-15px_rgba(0,0,0,0.8)]'} overflow-hidden relative min-h-[850px]` 
-            : 'max-w-full'
-        }`}>
-
-          {/* Android Notch / Punch hole if in mobile frame mode */}
-          {settings.viewMode === 'mobile-frame' && (
-            <div className="absolute top-2 left-1/2 -translate-x-1/2 w-28 h-4 bg-black rounded-full z-40 flex items-center justify-center">
-              <span className="w-2.5 h-2.5 rounded-full bg-blue-950" />
-            </div>
-          )}
-
-          {/* Top Android App Header */}
+        <div className="w-full flex flex-col flex-1 max-w-full">
+          {/* Top Android Sticky Glassmorphic Header */}
           <AndroidHeader
             settings={settings}
             onUpdateSettings={(newS) => setSettings(s => ({ ...s, ...newS }))}
-            onOpenSettings={() => setIsSettingsOpen(true)}
-            onOpenNotifications={() => setIsNotificationsOpen(true)}
-            onOpenWebsitesDrawer={() => setIsWebsitesDrawerOpen(true)}
+            onOpenSettings={() => openModalWithHistory(() => setIsSettingsOpen(true))}
+            onOpenNotifications={() => openModalWithHistory(() => setIsNotificationsOpen(true))}
+            onOpenWebsitesDrawer={() => openModalWithHistory(() => setIsWebsitesDrawerOpen(true))}
             unreadNotificationsCount={unreadNotificationsCount}
             onManualRefresh={fetchLiveFeeds}
             isRefreshing={isRefreshing}
@@ -496,7 +476,6 @@ export function App() {
             autoRefreshCountdown={autoRefreshCountdown}
             totalArticlesCount={articles.length}
             totalSourcesCount={sources.length}
-            onTestChime={() => playNotificationChime(true)}
           />
 
           {/* Main Body Content based on Active Tab */}
@@ -506,35 +485,35 @@ export function App() {
                 bookmarkedArticles={bookmarkedArticles}
                 onRemoveBookmark={handleToggleBookmark}
                 onClearAllBookmarks={() => setBookmarkedIds([])}
-                onOpenArticle={setSelectedArticle}
+                onOpenArticle={(art) => openModalWithHistory(() => setSelectedArticle(art))}
                 onDeleteArticle={handleDeleteArticle}
                 onBackToHome={() => setActiveTab('home')}
                 settings={settings}
               />
             ) : (
               <>
-                {/* Category Pills Bar with News Counters */}
+                {/* Source-based Classification Navigation (التصنيف حسب الموقع) */}
                 <CategoryNav
-                  categories={DEFAULT_CATEGORIES}
-                  selectedCategory={selectedCategory}
-                  onSelectCategory={setSelectedCategory}
-                  categoryCounts={categoryCounts}
+                  sources={sources}
+                  selectedSourceId={selectedSourceId}
+                  onSelectSource={setSelectedSourceId}
+                  sourceCounts={sourceCounts}
                   settings={settings}
                 />
 
                 {/* Articles Feed */}
-                <div className="max-w-7xl w-full mx-auto px-4 py-5 flex-1 space-y-5">
+                <div className="max-w-7xl w-full mx-auto px-4 py-4 flex-1 space-y-4">
                   
                   {/* Category Header, Active Website Filter Chip, & Layout Switcher */}
                   <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-1">
                     <div className="flex items-center justify-between sm:justify-start gap-2.5 flex-wrap">
                       <div className="flex items-center gap-2">
-                        <h2 className="font-extrabold text-base sm:text-lg tracking-tight">
+                        <h2 className="font-extrabold text-base sm:text-lg tracking-tight text-slate-900 dark:text-white">
                           {activeTab === 'breaking' 
                             ? getTranslation(settings.language, 'breakingNews')
-                            : selectedCategory === 'all'
-                            ? getTranslation(settings.language, 'allCategories')
-                            : DEFAULT_CATEGORIES.find(c => c.id === selectedCategory)?.nameAr || selectedCategory}
+                            : selectedSourceId
+                            ? selectedSourceName
+                            : getTranslation(settings.language, 'allSources')}
                         </h2>
                         <span className={`text-xs px-2.5 py-0.5 rounded-full font-extrabold shadow-xs ${theme.badge}`}>
                           {displayArticles.length} {getTranslation(settings.language, 'newsCount', { n: '' })}
@@ -545,8 +524,9 @@ export function App() {
                       {selectedSourceId && (
                         <div className="flex items-center gap-1.5 px-3 py-1 rounded-2xl bg-blue-600 text-white text-xs font-bold shadow-md animate-fade-in">
                           <Globe2 className="w-3.5 h-3.5" />
-                          <span>الموقع: {selectedSourceName}</span>
+                          <span>{selectedSourceName}</span>
                           <button
+                            type="button"
                             onClick={() => setSelectedSourceId(null)}
                             className="p-0.5 rounded-full hover:bg-white/20 ml-1 transition-colors"
                             title="إلغاء الفلترة"
@@ -564,7 +544,7 @@ export function App() {
                         </span>
                       )}
 
-                      {/* Interactive Display Format Switcher (بطاقات، مربعات، أشرطة، قائمة، مجلة) */}
+                      {/* Interactive Display Format Switcher */}
                       <div className={`flex items-center p-1 rounded-2xl ${bgClasses.card} shadow-md gap-0.5`} role="group" aria-label="تنسيق العرض">
                         {[
                           { id: 'normal', label: getTranslation(settings.language, 'readingSpeedNormal'), shortLabel: 'بطاقات', icon: LayoutGrid, color: 'text-indigo-500' },
@@ -596,8 +576,9 @@ export function App() {
 
                       {/* Open Right Websites Drawer Button */}
                       <button
+                        type="button"
                         id="open-source-manager-btn"
-                        onClick={() => setIsWebsitesDrawerOpen(true)}
+                        onClick={() => openModalWithHistory(() => setIsWebsitesDrawerOpen(true))}
                         className={`text-xs font-bold px-3.5 py-2 rounded-2xl flex items-center gap-2 transition-all shadow-md ${bgClasses.card} ${bgClasses.hover}`}
                       >
                         <Globe2 className="w-4 h-4 text-sky-400" />
@@ -617,11 +598,11 @@ export function App() {
                         {getTranslation(settings.language, 'searchNoResults')}
                       </h3>
                       <p className={`text-xs ${bgClasses.muted} max-w-sm mx-auto`}>
-                        جرب تغيير التصنيف، مسح كلمات البحث، أو إلغاء فلترة الموقع لتصفح الأخبار.
+                        جرب مسح كلمات البحث، أو إلغاء فلترة الموقع لتصفح كافة الأخبار.
                       </p>
                       <button
+                        type="button"
                         onClick={() => {
-                          setSelectedCategory('all');
                           setSelectedSourceId(null);
                           setSearchQuery('');
                         }}
@@ -631,7 +612,7 @@ export function App() {
                       </button>
                     </div>
                   ) : (
-                    /* Dynamic Layout with Swipeable Cards */
+                    /* Dynamic Layout with Swipeable Borderless Cards */
                     <div className={
                       settings.readingSpeed === 'compact'
                         ? 'space-y-2.5'
@@ -650,8 +631,7 @@ export function App() {
                             article={article}
                             isBookmarked={bookmarkedIds.includes(article.id)}
                             onToggleBookmark={handleToggleBookmark}
-                            onOpenArticle={setSelectedArticle}
-                            onPlayAudio={(text, title) => setCurrentAudioTrack({ title, text })}
+                            onOpenArticle={(art) => openModalWithHistory(() => setSelectedArticle(art))}
                             onDeleteArticle={handleDeleteArticle}
                             settings={settings}
                           />
@@ -686,9 +666,9 @@ export function App() {
             activeTab={activeTab}
             onSelectTab={(tab) => {
               if (tab === 'sources') {
-                setIsWebsitesDrawerOpen(true);
+                openModalWithHistory(() => setIsWebsitesDrawerOpen(true));
               } else if (tab === 'settings') {
-                setIsSettingsOpen(true);
+                openModalWithHistory(() => setIsSettingsOpen(true));
               } else {
                 setActiveTab(tab);
               }
@@ -700,13 +680,6 @@ export function App() {
         </div>
       </div>
 
-      {/* Floating Audio News Player */}
-      <AudioNewsPlayer
-        currentTrack={currentAudioTrack}
-        onClose={() => setCurrentAudioTrack(null)}
-        settings={settings}
-      />
-
       {/* Article Reader Modal */}
       <AnimatePresence>
         {selectedArticle && (
@@ -717,17 +690,15 @@ export function App() {
             onToggleBookmark={handleToggleBookmark}
             onDeleteArticle={handleDeleteArticle}
             settings={settings}
-            onUpdateSettings={(newS) => setSettings(s => ({ ...s, ...newS }))}
           />
         )}
       </AnimatePresence>
 
-      {/* Websites Right Sliding Drawer (شريط سحب من اليمين فيه قائمة بالمواقع و عدد الأخبار فيها) */}
+      {/* Websites Right Sliding Drawer */}
       <WebsitesDrawer
         isOpen={isWebsitesDrawerOpen}
         onClose={() => setIsWebsitesDrawerOpen(false)}
         sources={sources}
-        categories={DEFAULT_CATEGORIES}
         sourceCounts={sourceCounts}
         selectedSourceId={selectedSourceId}
         onSelectSource={(sourceId) => {
@@ -737,7 +708,7 @@ export function App() {
         onToggleSource={handleToggleSource}
         onOpenSourceManager={() => {
           setIsWebsitesDrawerOpen(false);
-          setIsSourceManagerOpen(true);
+          openModalWithHistory(() => setIsSourceManagerOpen(true));
         }}
         settings={settings}
       />
@@ -747,7 +718,7 @@ export function App() {
         {isSourceManagerOpen && (
           <SourceManagerModal
             sources={sources}
-            categories={DEFAULT_CATEGORIES}
+            categories={[]}
             onAddSource={handleAddSource}
             onDeleteSource={handleDeleteSource}
             onToggleSource={handleToggleSource}
@@ -765,7 +736,6 @@ export function App() {
             settings={settings}
             onUpdateSettings={(newS) => setSettings(s => ({ ...s, ...newS }))}
             onClose={() => setIsSettingsOpen(false)}
-            onTestChime={() => playNotificationChime(true)}
           />
         )}
       </AnimatePresence>

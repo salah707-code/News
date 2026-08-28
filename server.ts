@@ -184,6 +184,60 @@ app.post("/api/ai-summary", async (req, res) => {
   }
 });
 
+// Live Translation endpoint
+app.post("/api/translate", async (req, res) => {
+  try {
+    const { title, summary, fullContent, targetLang = 'ar' } = req.body;
+    if (!title && !summary && !fullContent) {
+      return res.status(400).json({ error: "No content to translate" });
+    }
+
+    const ai = getAIClient();
+    if (!ai) {
+      return res.json({
+        translatedTitle: title ? `[مترجم] ${title}` : '',
+        translatedSummary: summary ? `[مترجم بالعربية] ${summary}` : '',
+        translatedFullContent: fullContent ? `[مترجم بالعربية] ${fullContent}` : '',
+      });
+    }
+
+    const prompt = `أنت مترجم صحفي محترف. قم بترجمة النصوص الإخبارية التالية إلى اللغة ${targetLang === 'ar' ? 'العربية الفصحى بأسلوب صحفي رفيع ورصين' : 'الإنجليزية'}.
+حافظ على الدقة الصحفية وتجنب الحرفية الرديئة.
+
+النصوص المطلوب ترجمتها:
+العنوان: ${title || ''}
+الملخص: ${summary || ''}
+النص: ${(fullContent || '').slice(0, 1500)}
+
+المطلوب إرجاعه بتنسيق JSON حصرياً:
+{
+  "translatedTitle": "العنوان المترجم بالعربية",
+  "translatedSummary": "الملخص المترجم بالعربية",
+  "translatedFullContent": "النص الكامل المترجم بالعربية"
+}`;
+
+    const response = await ai.models.generateContent({
+      model: "gemini-3.7-flash",
+      contents: prompt,
+      config: {
+        responseMimeType: "application/json",
+        temperature: 0.2,
+      }
+    });
+
+    const parsedData = JSON.parse(response.text || "{}");
+    res.json(parsedData);
+  } catch (err: any) {
+    console.error("Translation error:", err.message);
+    res.status(500).json({
+      error: "Translation failed",
+      translatedTitle: req.body.title || '',
+      translatedSummary: req.body.summary || '',
+      translatedFullContent: req.body.fullContent || '',
+    });
+  }
+});
+
 // Vite & Static file serving
 async function startServer() {
   if (process.env.NODE_ENV !== "production") {

@@ -1,19 +1,20 @@
-export type ThemeColor = 'indigo' | 'blue' | 'orange' | 'green' | 'emerald' | 'crimson' | 'amber' | 'violet' | 'teal' | 'rose' | 'cyan';
+export type ThemeColor = 'blue' | 'indigo' | 'emerald' | 'amber' | 'crimson' | 'violet' | 'teal' | 'orange' | 'cyan' | 'rose';
 export type DarkMode = 'light' | 'dark' | 'oled';
 export type FontSize = 'sm' | 'base' | 'lg' | 'xl' | '2xl';
 export type ReadingSpeed = 'normal' | 'grid' | 'fast' | 'compact' | 'magazine';
-export type Language = 'ar' | 'en' | 'fr';
+export type Language = 'ar' | 'en';
+export type AppViewMode = 'browsing' | 'reading';
 
 export interface NewsArticle {
   id: string;
   title: string;
   summary: string;
-  fullContent?: string;
+  fullContent: string;
   author: string;
   source: string;
   sourceId: string;
   sourceLogo?: string;
-  category: string; // 'politics' | 'sports' | 'tech' | 'economy' | 'world' | 'health' | 'culture'
+  category: string; // 'world' | 'politics' | 'sports' | 'tech' | 'economy' | 'health' | 'culture'
   pubDate: string;
   imageUrl: string;
   link: string;
@@ -22,6 +23,13 @@ export interface NewsArticle {
   aiSummary?: string;
   aiKeyPoints?: string[];
   viewsCount?: number;
+  // Foreign translation support
+  isForeign?: boolean;
+  originalLanguage?: string;
+  translatedTitle?: string;
+  translatedSummary?: string;
+  translatedFullContent?: string;
+  isTranslated?: boolean;
 }
 
 export interface NewsCategory {
@@ -29,7 +37,6 @@ export interface NewsCategory {
   name: string;
   nameAr: string;
   nameEn: string;
-  nameFr: string;
   icon: string;
   badgeColor?: string;
 }
@@ -37,6 +44,7 @@ export interface NewsCategory {
 export interface NewsSource {
   id: string;
   name: string;
+  nameEn?: string;
   url: string;
   rssUrl?: string;
   category: string;
@@ -45,6 +53,7 @@ export interface NewsSource {
   isCustom: boolean;
   country?: string;
   color?: string;
+  isForeign?: boolean;
 }
 
 export interface AppSettings {
@@ -52,6 +61,7 @@ export interface AppSettings {
   darkMode: DarkMode;
   fontSize: FontSize;
   readingSpeed: ReadingSpeed;
+  appViewMode: AppViewMode; // 'browsing' or 'reading'
   autoRefreshInterval: number; // in seconds, 0 = off
   language: Language;
   notificationsEnabled: boolean;

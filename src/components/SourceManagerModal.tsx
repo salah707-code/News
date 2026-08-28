@@ -74,19 +74,19 @@ export const SourceManagerModal: React.FC<SourceManagerModalProps> = ({
           fetchedArticles = data.items;
           setRssStatus({
             success: true,
-            message: getTranslation(settings.language, 'rssSuccess', { n: data.items.length }),
+            message: `تم جلب ${data.items.length} خبر بنجاح`,
             count: data.items.length
           });
         } else {
           setRssStatus({
             success: false,
-            message: getTranslation(settings.language, 'rssFailed')
+            message: 'تعذر الاتصال بـ RSS، سيتم إضافة الموقع بدون تحديث تلقائي'
           });
         }
       } catch (err) {
         setRssStatus({
           success: false,
-          message: getTranslation(settings.language, 'rssFailed')
+          message: 'تعذر الاتصال بـ RSS، سيتم إضافة الموقع بدون تحديث تلقائي'
         });
       } finally {
         setIsTestingRss(false);
@@ -99,7 +99,10 @@ export const SourceManagerModal: React.FC<SourceManagerModalProps> = ({
       url: formattedUrl,
       rssUrl: rssUrl.trim() || undefined,
       category,
+      iconName: 'Globe',
       enabled: true,
+      isCustom: true,
+      country: 'موقع مخصص'
     }, fetchedArticles);
 
     // Reset Form
@@ -118,7 +121,7 @@ export const SourceManagerModal: React.FC<SourceManagerModalProps> = ({
   );
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-6 bg-black/75 backdrop-blur-md animate-fade-in">
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-6 bg-black/75 backdrop-blur-md animate-fade-in" id="source-manager-modal-backdrop">
       <motion.div
         initial={{ opacity: 0, scale: 0.95, y: 15 }}
         animate={{ opacity: 1, scale: 1, y: 0 }}
@@ -147,7 +150,7 @@ export const SourceManagerModal: React.FC<SourceManagerModalProps> = ({
             onClick={onClose}
             className={`p-2 rounded-2xl transition-colors ${bgClasses.elevated} ${bgClasses.hover}`}
           >
-            <X className="w-5 h-5 text-slate-500 hover:text-slate-900 dark:text-blue-200" />
+            <X className="w-5 h-5" />
           </button>
         </div>
 
@@ -159,7 +162,7 @@ export const SourceManagerModal: React.FC<SourceManagerModalProps> = ({
               type="text"
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
-              placeholder={getTranslation(settings.language, 'filterBy')}
+              placeholder="ابحث عن موقع..."
               className={`w-full py-2.5 px-3.5 pr-8 text-xs rounded-2xl focus:outline-none ${theme.ring} focus:ring-2 shadow-xs ${
                 settings.darkMode === 'oled'
                   ? 'bg-[#060b18] text-white'
@@ -192,7 +195,7 @@ export const SourceManagerModal: React.FC<SourceManagerModalProps> = ({
           </div>
         </div>
 
-        {/* Add Source Form Modal/Slide */}
+        {/* Add Source Form */}
         <AnimatePresence>
           {isAdding && (
             <motion.form
@@ -269,7 +272,7 @@ export const SourceManagerModal: React.FC<SourceManagerModalProps> = ({
                   >
                     {categories.map((c) => (
                       <option key={c.id} value={c.id}>
-                        {settings.language === 'en' ? c.nameEn : settings.language === 'fr' ? c.nameFr : c.nameAr}
+                        {settings.language === 'en' ? c.nameEn : c.nameAr}
                       </option>
                     ))}
                   </select>
@@ -291,7 +294,7 @@ export const SourceManagerModal: React.FC<SourceManagerModalProps> = ({
                   onClick={() => setIsAdding(false)}
                   className={`px-4 py-2 rounded-2xl text-xs font-semibold ${bgClasses.card}`}
                 >
-                  {settings.language === 'en' ? 'Cancel' : settings.language === 'fr' ? 'Annuler' : 'إلغاء'}
+                  {settings.language === 'en' ? 'Cancel' : 'إلغاء'}
                 </button>
                 <button
                   type="submit"
@@ -304,7 +307,7 @@ export const SourceManagerModal: React.FC<SourceManagerModalProps> = ({
                       <span>جاري الفحص...</span>
                     </>
                   ) : (
-                    <span>{settings.language === 'en' ? 'Save Source' : settings.language === 'fr' ? 'Enregistrer' : 'حفظ المصدر'}</span>
+                    <span>{settings.language === 'en' ? 'Save Source' : 'حفظ المصدر'}</span>
                   )}
                 </button>
               </div>
@@ -337,7 +340,7 @@ export const SourceManagerModal: React.FC<SourceManagerModalProps> = ({
                   >
                     <span
                       className={`block w-4 h-4 rounded-full bg-white transition-transform transform shadow-xs ${
-                        source.enabled ? 'translate-x-5' : 'translate-x-1'
+                        source.enabled ? 'translate-x-5 rtl:-translate-x-5' : 'translate-x-1 rtl:-translate-x-1'
                       }`}
                     />
                   </button>
@@ -345,54 +348,35 @@ export const SourceManagerModal: React.FC<SourceManagerModalProps> = ({
                   <div className="truncate">
                     <div className="flex items-center gap-2">
                       <span className="font-extrabold text-xs sm:text-sm truncate">
-                        {source.name}
+                        {settings.language === 'en' && source.nameEn ? source.nameEn : source.name}
                       </span>
                       {source.rssUrl && (
-                        <span className="p-1 rounded-md bg-amber-500/15 text-amber-600 dark:text-amber-400" title="يدعم RSS">
-                          <Rss className="w-3 h-3" />
+                        <span className="px-1.5 py-0.5 rounded bg-amber-500/10 text-amber-600 dark:text-amber-400 text-[10px] font-bold">
+                          RSS
                         </span>
                       )}
                     </div>
-                    <div className="flex items-center gap-2 text-[11px] text-slate-500 dark:text-blue-200/60 truncate">
-                      <span>{source.url.replace(/^https?:\/\//, '')}</span>
-                      <span>•</span>
-                      <span className="capitalize">{source.category}</span>
-                    </div>
+                    <p className={`text-[11px] ${bgClasses.muted} truncate`}>
+                      {source.url}
+                    </p>
                   </div>
                 </div>
 
-                <div className="flex items-center gap-1.5 shrink-0">
+                <div className="flex items-center gap-2 shrink-0">
                   <a
                     href={source.url}
                     target="_blank"
                     rel="noopener noreferrer"
-                    className={`p-2 rounded-xl text-slate-400 hover:text-sky-400 transition-colors`}
+                    className={`p-2 rounded-xl ${bgClasses.elevated} text-slate-400 hover:text-blue-500`}
                   >
                     <ExternalLink className="w-3.5 h-3.5" />
                   </a>
 
-                  {confirmDeleteId === source.id ? (
-                    <div className="flex items-center gap-1">
-                      <button
-                        onClick={() => {
-                          onDeleteSource(source.id);
-                          setConfirmDeleteId(null);
-                        }}
-                        className="px-2.5 py-1 bg-red-600 text-white rounded-xl text-[10px] font-bold"
-                      >
-                        حذف
-                      </button>
-                      <button
-                        onClick={() => setConfirmDeleteId(null)}
-                        className={`p-1 rounded-xl text-[10px] ${bgClasses.elevated}`}
-                      >
-                        إلغاء
-                      </button>
-                    </div>
-                  ) : (
+                  {source.isCustom && (
                     <button
-                      onClick={() => setConfirmDeleteId(source.id)}
-                      className={`p-2 rounded-xl text-slate-400 hover:text-red-500 transition-colors`}
+                      type="button"
+                      onClick={() => onDeleteSource(source.id)}
+                      className="p-2 rounded-xl bg-rose-50 dark:bg-rose-950/50 text-rose-500 hover:bg-rose-100"
                     >
                       <Trash2 className="w-3.5 h-3.5" />
                     </button>
