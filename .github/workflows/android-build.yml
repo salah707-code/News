@@ -18,60 +18,155 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
+
+      # ==========================================
+      # 1. Checkout
+      # ==========================================
       - name: Checkout repository
         uses: actions/checkout@v4
 
+      # ==========================================
+      # 2. Extract Android/Capacitor project
+      # ==========================================
+      - name: Extract Android project
+        run: |
+          rm -rf android-project
+          mkdir -p android-project
+
+          unzip -q News-Android-GitHub-Actions.zip \
+            -d android-project
+
+          echo "=== Extracted project ==="
+          find android-project/News-main -maxdepth 2 -type f | sort
+
+      # ==========================================
+      # 3. Setup Node.js
+      # ==========================================
       - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
           node-version: 20
 
-      - name: Setup Java
+      # ==========================================
+      # 4. Setup Java
+      # ==========================================
+      - name: Setup JDK
         uses: actions/setup-java@v5
         with:
           distribution: temurin
           java-version: '17'
 
+      # ==========================================
+      # 5. Setup Android SDK
+      # ==========================================
       - name: Setup Android SDK
         uses: android-actions/setup-android@v3
 
+      # ==========================================
+      # 6. Enter actual Android project
+      # ==========================================
+      - name: Verify Capacitor configuration
+        working-directory: android-project/News-main
+        run: |
+          echo "=== capacitor.config.ts ==="
+          cat capacitor.config.ts
+
+          echo ""
+          echo "=== package.json ==="
+          cat package.json
+
+      # ==========================================
+      # 7. Install dependencies
+      # ==========================================
       - name: Install dependencies
+        working-directory: android-project/News-main
         run: npm install
 
-      - name: Install Capacitor
+      # ==========================================
+      # 8. Install Capacitor Android
+      # ==========================================
+      - name: Install Capacitor Android
+        working-directory: android-project/News-main
         run: |
           npm install @capacitor/core @capacitor/cli @capacitor/android
 
+      # ==========================================
+      # 9. Build Vite application
+      # ==========================================
       - name: Build web application
+        working-directory: android-project/News-main
         run: npx vite build
 
-      - name: Create Android project
+      # ==========================================
+      # 10. Verify dist
+      # ==========================================
+      - name: Verify web build
+        working-directory: android-project/News-main
         run: |
-          if [ ! -d "android" ]; then
-            npx cap add android
-          else
-            echo "Android project already exists."
-          fi
+          echo "=== DIST ==="
+          find dist -maxdepth 2 -type f | sort
 
+          test -f dist/index.html
+
+      # ==========================================
+      # 11. Create Android project
+      # ==========================================
+      - name: Add Android platform
+        working-directory: android-project/News-main
+        run: |
+          npx cap add android
+
+      # ==========================================
+      # 12. Sync Capacitor
+      # ==========================================
       - name: Sync Capacitor
-        run: npx cap sync android
+        working-directory: android-project/News-main
+        run: |
+          npx cap sync android
 
+      # ==========================================
+      # 13. Check generated Android project
+      # ==========================================
+      - name: Verify Android project
+        working-directory: android-project/News-main
+        run: |
+          echo "=== Android project ==="
+          find android -maxdepth 3 -type f | sort | head -200
+
+          test -f android/gradlew
+          test -f android/settings.gradle
+
+      # ==========================================
+      # 14. Make Gradle executable
+      # ==========================================
       - name: Make Gradle executable
+        working-directory: android-project/News-main
         run: chmod +x android/gradlew
 
+      # ==========================================
+      # 15. Build APK
+      # ==========================================
       - name: Build Debug APK
-        working-directory: android
-        run: ./gradlew assembleDebug --stacktrace
+        working-directory: android-project/News-main/android
+        run: |
+          ./gradlew assembleDebug --stacktrace
 
-      - name: Show generated APK
+      # ==========================================
+      # 16. Find APK
+      # ==========================================
+      - name: Find APK
+        working-directory: android-project/News-main
         run: |
           echo "=== GENERATED APK ==="
           find android/app/build/outputs -type f -name "*.apk" -print
 
-      - name: Upload APK
+      # ==========================================
+      # 17. Upload APK
+      # ==========================================
+      - name: Upload The Reporter APK
         uses: actions/upload-artifact@v4
         with:
           name: The-Reporter-Debug-APK
-          path: android/app/build/outputs/apk/debug/*.apk
+          path: android-project/News-main/android/app/build/outputs/apk/debug/*.apk
           if-no-files-found: error
           retention-days: 30
