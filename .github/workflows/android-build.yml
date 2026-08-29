@@ -1,4 +1,4 @@
-```yaml
+
 name: Android Build
 
 on:
@@ -14,84 +14,38 @@ permissions:
   contents: read
 
 jobs:
-  build:
-    name: Build Android APK
+  inspect:
+    name: Inspect Android Project
     runs-on: ubuntu-latest
 
     steps:
-      # 1. تحميل المستودع
-      - name: Checkout repository
+      - name: Checkout
         uses: actions/checkout@v4
 
-      # 2. فك مشروع Android من ZIP
-      - name: Extract Android project
+      - name: Show repository
+        run: |
+          echo "=== Repository ==="
+          find . -maxdepth 3 -type f | sort
+
+      - name: Extract Android ZIP
         run: |
           mkdir -p android-project
           unzip -q News-Android-GitHub-Actions.zip -d android-project
 
-          echo "Android project contents:"
-          find android-project -maxdepth 3 -type f | sort | head -200
-
-      # 3. العثور على gradlew
-      - name: Locate Gradle wrapper
-        id: locate-gradle
+      - name: Inspect Android project
         run: |
-          GRADLEW=$(find android-project -type f -name gradlew | head -n 1)
+          echo "=== Extracted files ==="
+          find android-project -maxdepth 5 -type f | sort
 
-          if [ -z "$GRADLEW" ]; then
-            echo "ERROR: gradlew was not found."
-            echo "The ZIP does not appear to contain a complete Android Gradle project."
-            exit 1
-          fi
+          echo ""
+          echo "=== Gradle wrappers ==="
+          find android-project -type f -name gradlew -print
 
-          PROJECT_DIR=$(dirname "$GRADLEW")
-
-          echo "gradlew found at: $GRADLEW"
-          echo "project_dir=$PROJECT_DIR" >> "$GITHUB_OUTPUT"
-
-      # 4. إعطاء صلاحية التنفيذ لـ Gradle
-      - name: Make Gradle wrapper executable
-        working-directory: ${{ steps.locate-gradle.outputs.project_dir }}
-        run: chmod +x gradlew
-
-      # 5. إعداد Java
-      - name: Set up JDK
-        uses: actions/setup-java@v4
-        with:
-          distribution: temurin
-          java-version: '17'
-          cache: gradle
-
-      # 6. إعداد Android SDK
-      - name: Set up Android SDK
-        uses: android-actions/setup-android@v3
-
-      # 7. بناء Debug APK
-      - name: Build Debug APK
-        working-directory: ${{ steps.locate-gradle.outputs.project_dir }}
-        run: ./gradlew assembleDebug --stacktrace
-
-      # 8. العثور على APK
-      - name: Find generated APK
-        id: apk
-        working-directory: ${{ steps.locate-gradle.outputs.project_dir }}
-        run: |
-          APK=$(find . -type f -name "*.apk" | head -n 1)
-
-          if [ -z "$APK" ]; then
-            echo "ERROR: No APK was generated."
-            exit 1
-          fi
-
-          echo "APK found: $APK"
-          echo "path=$APK" >> "$GITHUB_OUTPUT"
-
-      # 9. رفع APK كـ Artifact
-      - name: Upload Debug APK
-        uses: actions/upload-artifact@v4
-        with:
-          name: News-Debug-APK
-          path: ${{ steps.locate-gradle.outputs.project_dir }}/${{ steps.apk.outputs.path }}
-          if-no-files-found: error
-          retention-days: 30
-```
+          echo ""
+          echo "=== Gradle settings ==="
+          find android-project -type f \( \
+            -name "settings.gradle" -o \
+            -name "settings.gradle.kts" -o \
+            -name "build.gradle" -o \
+            -name "build.gradle.kts" \
+          \) -print
