@@ -18,71 +18,55 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-      # 1. تحميل المشروع
-      - name: Checkout
+      - name: Checkout repository
         uses: actions/checkout@v4
 
-      # 2. Node.js
       - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
           node-version: 20
-          cache: npm
 
-      # 3. Java
-      - name: Setup JDK
+      - name: Setup Java
         uses: actions/setup-java@v4
         with:
           distribution: temurin
           java-version: '17'
           cache: gradle
 
-      # 4. Android SDK
       - name: Setup Android SDK
         uses: android-actions/setup-android@v3
 
-      # 5. تثبيت حزم المشروع
       - name: Install dependencies
         run: npm install
 
-      # 6. تثبيت Capacitor
       - name: Install Capacitor
         run: |
           npm install @capacitor/core @capacitor/cli @capacitor/android
 
-      # 7. بناء واجهة React/Vite فقط
       - name: Build web application
         run: npx vite build
 
-      # 8. إنشاء مشروع Android
       - name: Create Android project
         run: |
           if [ ! -d "android" ]; then
             npx cap add android
-          else
-            echo "Android directory already exists."
           fi
 
-      # 9. مزامنة Capacitor
-      - name: Sync Android
+      - name: Sync Capacitor
         run: npx cap sync android
 
-      # 10. إعطاء Gradle صلاحية التنفيذ
       - name: Make Gradle executable
         run: chmod +x android/gradlew
 
-      # 11. بناء APK Debug
       - name: Build Debug APK
         working-directory: android
         run: ./gradlew assembleDebug --stacktrace
 
-      # 12. التحقق من APK
-      - name: Verify APK
+      - name: Show generated APK
         run: |
-          echo "Generated APK:"
-          find android/app/build/outputs/apk -type f -name "*.apk" -print
+          echo "=== APK FILES ==="
+          find android/app/build/outputs -type f -name "*.apk" -print
 
-      # 13. رفع APK
       - name: Upload APK
         uses: actions/upload-artifact@v4
         with:
