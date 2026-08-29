@@ -4,6 +4,38 @@ export type FontSize = 'sm' | 'base' | 'lg' | 'xl' | '2xl';
 export type ReadingSpeed = 'normal' | 'grid' | 'fast' | 'compact' | 'magazine';
 export type Language = 'ar' | 'en';
 export type AppViewMode = 'browsing' | 'reading';
+export type ReaderVisualMode = 'normal' | 'cream' | 'sepia' | 'dark';
+
+export interface ReadingReminder {
+  id: string;
+  articleId: string;
+  articleTitle: string;
+  articleSource: string;
+  articleImage?: string;
+  reminderTime?: string; // ISO String
+  remindAt: string; // ISO String
+  createdAt: string;
+  completed?: boolean;
+  notified?: boolean;
+}
+
+export interface ReadingStats {
+  totalArticlesRead: number;
+  totalReadingMinutes: number;
+  categoryCounts: Record<string, number>;
+  sourceCounts?: Record<string, number>;
+  lastReadDate?: string;
+  streakDays?: number;
+  weeklyReading?: { day: string; minutes: number }[];
+  history?: {
+    articleId: string;
+    title: string;
+    category: string;
+    source: string;
+    readAt: string;
+    readMinutes: number;
+  }[];
+}
 
 export interface NewsArticle {
   id: string;

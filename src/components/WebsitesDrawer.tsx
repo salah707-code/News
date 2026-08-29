@@ -140,9 +140,7 @@ export const WebsitesDrawer: React.FC<WebsitesDrawerProps> = ({
                   value={searchQuery}
                   onChange={(e) => setSearchQuery(e.target.value)}
                   placeholder="ابحث عن موقع إخباري..."
-                  className={`w-full py-2 px-10 rounded-2xl text-xs font-semibold focus:outline-none focus:ring-2 ${theme.ring} ${
-                    settings.darkMode === 'light' ? 'bg-slate-100 text-slate-900' : 'bg-[#0f1b3b] text-white'
-                  }`}
+                  className={`w-full py-2 px-10 rounded-2xl text-xs font-semibold focus:outline-none focus:ring-2 ${theme.ring} bg-slate-100 dark:bg-slate-800 text-slate-900 dark:text-white border border-slate-200/50 dark:border-slate-700/50`}
                 />
                 {searchQuery && (
                   <button

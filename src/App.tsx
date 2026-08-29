@@ -4,7 +4,10 @@ import {
   NewsSource, 
   AppSettings, 
   NotificationItem, 
-  ReadingSpeed 
+  ReadingSpeed,
+  ReadingStats,
+  ReadingReminder,
+  FontSize
 } from './types';
 import { 
   DEFAULT_SOURCES, 
@@ -19,9 +22,14 @@ import { WebsitesDrawer } from './components/WebsitesDrawer';
 import { SourceManagerModal } from './components/SourceManagerModal';
 import { SettingsModal } from './components/SettingsModal';
 import { NotificationsDrawer } from './components/NotificationsDrawer';
+import { StatsModal } from './components/StatsModal';
+import { ReminderModal } from './components/ReminderModal';
 import { BottomNavBar, MainTab } from './components/BottomNavBar';
 import { THEME_CONFIG, getBackgroundClasses } from './utils/themeColors';
 import { getTranslation } from './utils/translations';
+import { preloadImages, clearAllImageCache } from './utils/imageCache';
+import { clearAllTranslations } from './utils/translationService';
+import { getDistinctArticleImage } from './utils/newsImages';
 import { 
   Flame, 
   AlertCircle,
@@ -31,7 +39,11 @@ import {
   List,
   Rows,
   X,
-  Sparkles
+  Sparkles,
+  ArrowDown,
+  RefreshCw,
+  BarChart3,
+  Bell
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 import confetti from 'canvas-confetti';
@@ -42,11 +54,13 @@ const STORAGE_KEYS = {
   SOURCES: 'nabdh_news_sources_v3',
   BOOKMARKS: 'nabdh_news_bookmarks_v3',
   NOTIFICATIONS: 'nabdh_news_notifs_v3',
+  STATS: 'nabdh_news_stats_v3',
+  REMINDERS: 'nabdh_news_reminders_v3',
 };
 
 const DEFAULT_SETTINGS: AppSettings = {
   themeColor: 'blue',
-  darkMode: 'dark',
+  darkMode: 'light',
   fontSize: 'base',
   readingSpeed: 'normal',
   language: 'ar',
@@ -56,6 +70,28 @@ const DEFAULT_SETTINGS: AppSettings = {
   viewMode: 'responsive-fluid',
   appViewMode: 'browsing',
   breakingNewsOnly: false,
+};
+
+const DEFAULT_STATS: ReadingStats = {
+  totalArticlesRead: 12,
+  totalReadingMinutes: 38,
+  categoryCounts: {
+    world: 5,
+    tech: 4,
+    politics: 2,
+    economy: 1
+  },
+  lastReadDate: new Date().toISOString(),
+  streakDays: 3,
+  weeklyReading: [
+    { day: 'السبت', minutes: 8 },
+    { day: 'الأحد', minutes: 12 },
+    { day: 'الإثنين', minutes: 6 },
+    { day: 'الثلاثاء', minutes: 15 },
+    { day: 'الأربعاء', minutes: 10 },
+    { day: 'الخميس', minutes: 14 },
+    { day: 'الجمعة', minutes: 20 },
+  ]
 };
 
 export function App() {
@@ -106,9 +142,9 @@ export function App() {
       return saved ? JSON.parse(saved) : [
         {
           id: 'notif-1',
-          title: 'عاجل: الجزيرة نت',
-          body: 'قمة دولية كبرى تناقش تطورات الطاقة المتجددة.',
-          time: 'منذ 10 دقائق',
+          title: 'عاجل: The Reporter News',
+          body: 'مرحباً بك في تطبيق The Reporter المطور!',
+          time: 'الآن',
           read: false,
           articleId: 'news-1',
           isBreaking: true
@@ -119,18 +155,47 @@ export function App() {
     }
   });
 
+  // Reading Stats State
+  const [readingStats, setReadingStats] = useState<ReadingStats>(() => {
+    try {
+      const saved = localStorage.getItem(STORAGE_KEYS.STATS);
+      return saved ? JSON.parse(saved) : DEFAULT_STATS;
+    } catch (e) {
+      return DEFAULT_STATS;
+    }
+  });
+
+  // Reading Reminders State
+  const [reminders, setReminders] = useState<ReadingReminder[]>(() => {
+    try {
+      const saved = localStorage.getItem(STORAGE_KEYS.REMINDERS);
+      return saved ? JSON.parse(saved) : [];
+    } catch (e) {
+      return [];
+    }
+  });
+
   // UI Navigation & Dialog States
   const [activeTab, setActiveTab] = useState<MainTab>('home');
   const [selectedSourceId, setSelectedSourceId] = useState<string | null>(null);
   const [searchQuery, setSearchQuery] = useState<string>('');
   const [selectedArticle, setSelectedArticle] = useState<NewsArticle | null>(null);
+  const [reminderTargetArticle, setReminderTargetArticle] = useState<NewsArticle | null>(null);
+  
   const [isSettingsOpen, setIsSettingsOpen] = useState(false);
   const [isSourceManagerOpen, setIsSourceManagerOpen] = useState(false);
   const [isWebsitesDrawerOpen, setIsWebsitesDrawerOpen] = useState(false);
   const [isNotificationsOpen, setIsNotificationsOpen] = useState(false);
+  const [isStatsOpen, setIsStatsOpen] = useState(false);
+  const [isReminderModalOpen, setIsReminderModalOpen] = useState(false);
   const [isRefreshing, setIsRefreshing] = useState(false);
   const [autoRefreshCountdown, setAutoRefreshCountdown] = useState(settings.autoRefreshInterval || 60);
   const [toastMessage, setToastMessage] = useState<string | null>(null);
+
+  // Pull to refresh touch tracking state
+  const [pullY, setPullY] = useState(0);
+  const [isPulling, setIsPulling] = useState(false);
+  const touchStartYRef = useRef(0);
 
   const isNavigatingBackRef = useRef(false);
 
@@ -141,20 +206,23 @@ export function App() {
     }, 2500);
   }, []);
 
-  // Sync to local storage & update body colors (Midnight Navy & Light Mode)
+  // Sync to local storage & update body colors (Clean Light & Slate Dark)
   useEffect(() => {
     localStorage.setItem(STORAGE_KEYS.SETTINGS, JSON.stringify(settings));
     document.documentElement.dir = settings.language === 'ar' ? 'rtl' : 'ltr';
     document.documentElement.lang = settings.language;
     if (settings.darkMode === 'oled') {
       document.documentElement.classList.add('dark');
-      document.body.className = 'bg-[#060b18] text-blue-50 selection:bg-blue-600 selection:text-white';
+      document.documentElement.style.backgroundColor = '#000000';
+      document.body.className = 'bg-black text-slate-100 selection:bg-blue-600 selection:text-white';
     } else if (settings.darkMode === 'dark') {
       document.documentElement.classList.add('dark');
-      document.body.className = 'bg-[#0a1128] text-slate-100 selection:bg-blue-600 selection:text-white';
+      document.documentElement.style.backgroundColor = '#0f172a';
+      document.body.className = 'bg-slate-900 text-slate-100 selection:bg-blue-600 selection:text-white';
     } else {
       document.documentElement.classList.remove('dark');
-      document.body.className = 'bg-slate-100/80 text-slate-900 selection:bg-blue-600 selection:text-white';
+      document.documentElement.style.backgroundColor = '#ffffff';
+      document.body.className = 'bg-white text-slate-900 selection:bg-blue-600 selection:text-white';
     }
   }, [settings]);
 
@@ -174,15 +242,29 @@ export function App() {
     localStorage.setItem(STORAGE_KEYS.NOTIFICATIONS, JSON.stringify(notifications));
   }, [notifications]);
 
-  // Back Navigation Handler (عند العودة للخلف يعود للتطبيق و ليس لمغادرته)
   useEffect(() => {
-    // Push an initial state if history is empty
+    localStorage.setItem(STORAGE_KEYS.STATS, JSON.stringify(readingStats));
+  }, [readingStats]);
+
+  useEffect(() => {
+    localStorage.setItem(STORAGE_KEYS.REMINDERS, JSON.stringify(reminders));
+  }, [reminders]);
+
+  // Back Navigation Handler
+  useEffect(() => {
     window.history.replaceState({ page: 'root' }, '');
 
     const handlePopState = (event: PopStateEvent) => {
       isNavigatingBackRef.current = true;
 
-      // Hierarchy of back navigation:
+      if (isReminderModalOpen) {
+        setIsReminderModalOpen(false);
+        return;
+      }
+      if (isStatsOpen) {
+        setIsStatsOpen(false);
+        return;
+      }
       if (selectedArticle) {
         setSelectedArticle(null);
         return;
@@ -216,7 +298,6 @@ export function App() {
         return;
       }
 
-      // If at root and user clicks back, re-push so they don't exit accidentally
       window.history.pushState({ page: 'root' }, '');
       triggerToast('اضغط مرة أخرى للخروج أو تصفح المزيد');
     };
@@ -224,6 +305,8 @@ export function App() {
     window.addEventListener('popstate', handlePopState);
     return () => window.removeEventListener('popstate', handlePopState);
   }, [
+    isReminderModalOpen,
+    isStatsOpen,
     selectedArticle,
     isWebsitesDrawerOpen,
     isSettingsOpen,
@@ -235,7 +318,6 @@ export function App() {
     triggerToast
   ]);
 
-  // Push state when opening modals or drilling down
   const openModalWithHistory = useCallback((openFn: () => void) => {
     window.history.pushState({ page: 'modal' }, '');
     openFn();
@@ -274,7 +356,7 @@ export function App() {
             sourceId: src.id,
             category: src.category === 'all' ? 'world' : src.category,
             pubDate: item.pubDate,
-            imageUrl: item.imageUrl || 'https://images.unsplash.com/photo-1504711434969-e33886168f5c?auto=format&fit=crop&w=1200&q=80',
+            imageUrl: item.imageUrl || '',
             link: item.link,
             isBreaking: Math.random() > 0.7,
             readTimeMinutes: Math.floor(Math.random() * 3) + 2,
@@ -295,6 +377,7 @@ export function App() {
           const uniqueNew = newArticles.filter(a => !existingIds.has(a.id));
           return [...uniqueNew.slice(0, 10), ...prev].slice(0, 60);
         });
+        triggerToast(getTranslation(settings.language, 'refreshComplete'));
       }
     } catch (err) {
       console.error('Error fetching live feeds:', err);
@@ -302,7 +385,7 @@ export function App() {
       setIsRefreshing(false);
       setAutoRefreshCountdown(settings.autoRefreshInterval || 60);
     }
-  }, [sources, settings.autoRefreshInterval]);
+  }, [sources, settings.autoRefreshInterval, settings.language, triggerToast]);
 
   // Auto-refresh timer
   useEffect(() => {
@@ -321,6 +404,40 @@ export function App() {
 
     return () => clearInterval(countdownInterval);
   }, [settings.autoRefreshInterval, fetchLiveFeeds]);
+
+  // Check Reading Reminders periodically
+  useEffect(() => {
+    const checkReminders = () => {
+      const now = Date.now();
+      setReminders((prev) => {
+        let changed = false;
+        const updated = prev.map((rem) => {
+          if (!rem.completed && new Date(rem.remindAt).getTime() <= now) {
+            changed = true;
+            // Add notification
+            setNotifications((nPrev) => [
+              {
+                id: `rem-notif-${Date.now()}`,
+                title: '⏰ حان وقت قراءة المقال الذي اخترته',
+                body: rem.articleTitle,
+                time: 'الآن',
+                read: false,
+                articleId: rem.articleId,
+              },
+              ...nPrev,
+            ]);
+            triggerToast(`⏰ تذكير بالقراءة: ${rem.articleTitle.slice(0, 30)}...`);
+            return { ...rem, completed: true };
+          }
+          return rem;
+        });
+        return changed ? updated : prev;
+      });
+    };
+
+    const reminderTimer = setInterval(checkReminders, 15000);
+    return () => clearInterval(reminderTimer);
+  }, [triggerToast]);
 
   // Bookmark toggling
   const handleToggleBookmark = (article: NewsArticle) => {
@@ -341,12 +458,60 @@ export function App() {
     });
   };
 
-  // Delete Article Handler (Swipe to Delete or Click)
+  // When user opens article, record stats
+  const handleOpenArticle = (article: NewsArticle) => {
+    setSelectedArticle(article);
+    setReadingStats((prev) => {
+      const cat = article.category || 'world';
+      const currentCatCount = (prev.categoryCounts && prev.categoryCounts[cat]) || 0;
+      return {
+        ...prev,
+        totalArticlesRead: prev.totalArticlesRead + 1,
+        totalReadingMinutes: prev.totalReadingMinutes + (article.readTimeMinutes || 3),
+        lastReadDate: new Date().toISOString(),
+        categoryCounts: {
+          ...prev.categoryCounts,
+          [cat]: currentCatCount + 1,
+        }
+      };
+    });
+  };
+
+  // Delete Article Handler
   const handleDeleteArticle = useCallback((articleToDelete: NewsArticle) => {
     setArticles((prev) => prev.filter(a => a.id !== articleToDelete.id));
     setBookmarkedIds((prev) => prev.filter(id => id !== articleToDelete.id));
     triggerToast(getTranslation(settings.language, 'articleDeletedSuccess'));
   }, [settings.language, triggerToast]);
+
+  // Pull to refresh handlers
+  const handleTouchStart = (e: React.TouchEvent) => {
+    if (window.scrollY <= 5) {
+      touchStartYRef.current = e.touches[0].clientY;
+      setIsPulling(true);
+    }
+  };
+
+  const handleTouchMove = (e: React.TouchEvent) => {
+    if (!isPulling || isRefreshing) return;
+    const currentY = e.touches[0].clientY;
+    const diff = currentY - touchStartYRef.current;
+    if (diff > 0 && window.scrollY <= 5) {
+      // Elastic resistance formula
+      const pullDistance = Math.min(diff * 0.45, 90);
+      setPullY(pullDistance);
+    } else {
+      setPullY(0);
+    }
+  };
+
+  const handleTouchEnd = () => {
+    if (pullY > 55 && !isRefreshing) {
+      fetchLiveFeeds();
+    }
+    setPullY(0);
+    setIsPulling(false);
+  };
 
   // Source Managers
   const handleAddSource = (newSourceData: Omit<NewsSource, 'id'>, newSourceArticles?: any[]) => {
@@ -368,7 +533,7 @@ export function App() {
         sourceId: newId,
         category: fullSource.category === 'all' ? 'world' : fullSource.category,
         pubDate: item.pubDate || new Date().toISOString(),
-        imageUrl: item.imageUrl || 'https://images.unsplash.com/photo-1504711434969-e33886168f5c?auto=format&fit=crop&w=1200&q=80',
+        imageUrl: item.imageUrl || '',
         link: item.link || fullSource.url,
         isBreaking: idx === 0,
         readTimeMinutes: 3,
@@ -389,9 +554,54 @@ export function App() {
   const handleRestoreDefaults = () => {
     setSources(DEFAULT_SOURCES);
     setArticles(INITIAL_ARTICLES);
+    clearAllImageCache();
+    clearAllTranslations();
   };
 
-  // Source counts computation (Live count of articles per website)
+  const handleClearAppData = async () => {
+    await clearAllImageCache();
+    clearAllTranslations();
+    setBookmarkedIds([]);
+    setSources(DEFAULT_SOURCES);
+    setArticles(INITIAL_ARTICLES);
+    setNotifications([]);
+    setReadingStats({
+      totalArticlesRead: 0,
+      totalReadingMinutes: 0,
+      categoryCounts: {},
+      lastReadDate: new Date().toISOString(),
+      streakDays: 0,
+      weeklyReading: [
+        { day: 'السبت', minutes: 0 },
+        { day: 'الأحد', minutes: 0 },
+        { day: 'الإثنين', minutes: 0 },
+        { day: 'الثلاثاء', minutes: 0 },
+        { day: 'الأربعاء', minutes: 0 },
+        { day: 'الخميس', minutes: 0 },
+        { day: 'الجمعة', minutes: 0 },
+      ]
+    });
+    setReminders([]);
+    localStorage.removeItem(STORAGE_KEYS.BOOKMARKS);
+    localStorage.removeItem(STORAGE_KEYS.SOURCES);
+    localStorage.removeItem(STORAGE_KEYS.STATS);
+    localStorage.removeItem(STORAGE_KEYS.REMINDERS);
+    localStorage.removeItem(STORAGE_KEYS.NOTIFICATIONS);
+    localStorage.removeItem(STORAGE_KEYS.ARTICLES);
+    triggerToast(getTranslation(settings.language, 'clearAllAppDataSuccess'));
+  };
+
+  // Background Pre-caching for article images to guarantee instant zero-data opening
+  useEffect(() => {
+    if (articles && articles.length > 0) {
+      const urls = articles
+        .map(a => a.imageUrl || getDistinctArticleImage(a.id, a.category, a.isBreaking, a.title))
+        .filter(Boolean);
+      preloadImages(urls);
+    }
+  }, [articles]);
+
+  // Source counts computation
   const sourceCounts = useMemo(() => {
     const counts: Record<string, number> = {};
     sources.forEach(src => {
@@ -408,19 +618,16 @@ export function App() {
   // Filtered Articles based on Website Source Selection
   const displayArticles = useMemo(() => {
     return articles.filter((art) => {
-      // Source filter
       if (selectedSourceId) {
         const matchedSource = sources.find(s => s.id === selectedSourceId);
         const matches = art.sourceId === selectedSourceId || (matchedSource && art.source.toLowerCase() === matchedSource.name.toLowerCase());
         if (!matches) return false;
       }
 
-      // Tab filter
       if (activeTab === 'breaking') {
         if (!art.isBreaking) return false;
       }
 
-      // Search query filter
       if (searchQuery.trim()) {
         const q = searchQuery.toLowerCase();
         const matches =
@@ -434,12 +641,10 @@ export function App() {
     });
   }, [articles, selectedSourceId, searchQuery, activeTab, sources]);
 
-  // Breaking Articles list
   const breakingArticles = useMemo(() => {
     return articles.filter(a => a.isBreaking);
   }, [articles]);
 
-  // Bookmarked Articles objects
   const bookmarkedArticles = useMemo(() => {
     return articles.filter(a => bookmarkedIds.includes(a.id));
   }, [articles, bookmarkedIds]);
@@ -457,9 +662,36 @@ export function App() {
   const bgClasses = getBackgroundClasses(settings.darkMode);
 
   return (
-    <div className={`min-h-screen flex flex-col font-sans transition-colors duration-200 ${bgClasses.bg}`}>
+    <div 
+      className={`min-h-screen flex flex-col font-sans transition-colors duration-200 ${bgClasses.bg}`}
+      onTouchStart={handleTouchStart}
+      onTouchMove={handleTouchMove}
+      onTouchEnd={handleTouchEnd}
+    >
+      {/* Pull to Refresh Indicator */}
+      <AnimatePresence>
+        {(pullY > 0 || isRefreshing) && (
+          <motion.div
+            initial={{ height: 0, opacity: 0 }}
+            animate={{ height: pullY > 0 ? pullY : 50, opacity: 1 }}
+            exit={{ height: 0, opacity: 0 }}
+            className="overflow-hidden flex items-center justify-center bg-blue-50/80 dark:bg-blue-950/40 text-blue-600 dark:text-blue-400 border-b border-blue-100 dark:border-blue-900/30"
+          >
+            <div className="flex items-center gap-2 py-2 text-xs font-bold">
+              <RefreshCw className={`w-4 h-4 ${isRefreshing || pullY > 55 ? 'animate-spin' : ''}`} />
+              <span>
+                {isRefreshing 
+                  ? getTranslation(settings.language, 'refreshing')
+                  : pullY > 55 
+                  ? getTranslation(settings.language, 'releaseToRefresh')
+                  : getTranslation(settings.language, 'pullToRefresh')}
+              </span>
+            </div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+
       <div className="w-full flex-1 flex flex-col items-center justify-start">
-        
         <div className="w-full flex flex-col flex-1 max-w-full">
           {/* Top Android Sticky Glassmorphic Header */}
           <AndroidHeader
@@ -485,14 +717,14 @@ export function App() {
                 bookmarkedArticles={bookmarkedArticles}
                 onRemoveBookmark={handleToggleBookmark}
                 onClearAllBookmarks={() => setBookmarkedIds([])}
-                onOpenArticle={(art) => openModalWithHistory(() => setSelectedArticle(art))}
+                onOpenArticle={(art) => openModalWithHistory(() => handleOpenArticle(art))}
                 onDeleteArticle={handleDeleteArticle}
                 onBackToHome={() => setActiveTab('home')}
                 settings={settings}
               />
             ) : (
               <>
-                {/* Source-based Classification Navigation (التصنيف حسب الموقع) */}
+                {/* Source-based Classification Navigation */}
                 <CategoryNav
                   sources={sources}
                   selectedSourceId={selectedSourceId}
@@ -538,11 +770,17 @@ export function App() {
                     </div>
 
                     <div className="flex items-center justify-between sm:justify-end gap-2 flex-wrap">
-                      {searchQuery && (
-                        <span className="text-xs text-sky-400 font-medium">
-                          نتائج البحث عن "{searchQuery}"
-                        </span>
-                      )}
+                      {/* Stats Quick Button */}
+                      <button
+                        type="button"
+                        id="header-stats-quick-btn"
+                        onClick={() => openModalWithHistory(() => setIsStatsOpen(true))}
+                        className={`text-xs font-bold px-3 py-1.5 rounded-2xl flex items-center gap-1.5 transition-all shadow-xs ${bgClasses.card} ${bgClasses.hover} text-indigo-600 dark:text-indigo-400`}
+                        title="إحصائيات القراءة"
+                      >
+                        <BarChart3 className="w-4 h-4" />
+                        <span className="hidden sm:inline">إحصائياتي</span>
+                      </button>
 
                       {/* Interactive Display Format Switcher */}
                       <div className={`flex items-center p-1 rounded-2xl ${bgClasses.card} shadow-md gap-0.5`} role="group" aria-label="تنسيق العرض">
@@ -612,7 +850,7 @@ export function App() {
                       </button>
                     </div>
                   ) : (
-                    /* Dynamic Layout with Swipeable Borderless Cards */
+                    /* Dynamic Layout with Swipeable Cards */
                     <div className={
                       settings.readingSpeed === 'compact'
                         ? 'space-y-2.5'
@@ -631,7 +869,7 @@ export function App() {
                             article={article}
                             isBookmarked={bookmarkedIds.includes(article.id)}
                             onToggleBookmark={handleToggleBookmark}
-                            onOpenArticle={(art) => openModalWithHistory(() => setSelectedArticle(art))}
+                            onOpenArticle={(art) => openModalWithHistory(() => handleOpenArticle(art))}
                             onDeleteArticle={handleDeleteArticle}
                             settings={settings}
                           />
@@ -656,7 +894,7 @@ export function App() {
                 <span>{displayArticles.length} خبر محدث</span>
               </div>
               <div className="flex items-center gap-3">
-                <span>The Reporter News © 2025</span>
+                <span>The Reporter © 2025</span>
               </div>
             </footer>
           </main>
@@ -685,10 +923,80 @@ export function App() {
         {selectedArticle && (
           <ArticleModal
             article={selectedArticle}
+            isOpen={Boolean(selectedArticle)}
             onClose={() => setSelectedArticle(null)}
             isBookmarked={bookmarkedIds.includes(selectedArticle.id)}
             onToggleBookmark={handleToggleBookmark}
             onDeleteArticle={handleDeleteArticle}
+            onOpenReminder={(art) => {
+              setReminderTargetArticle(art);
+              openModalWithHistory(() => setIsReminderModalOpen(true));
+            }}
+            onUpdateFontSize={(newSize: FontSize) => {
+              setSettings(s => ({ ...s, fontSize: newSize }));
+            }}
+            settings={settings}
+          />
+        )}
+      </AnimatePresence>
+
+      {/* Reading Statistics Modal */}
+      <AnimatePresence>
+        {isStatsOpen && (
+          <StatsModal
+            stats={readingStats}
+            onClearStats={() => {
+              setReadingStats({
+                totalArticlesRead: 0,
+                totalReadingMinutes: 0,
+                categoryCounts: {},
+                lastReadDate: new Date().toISOString(),
+                streakDays: 0,
+                weeklyReading: [
+                  { day: 'السبت', minutes: 0 },
+                  { day: 'الأحد', minutes: 0 },
+                  { day: 'الإثنين', minutes: 0 },
+                  { day: 'الثلاثاء', minutes: 0 },
+                  { day: 'الأربعاء', minutes: 0 },
+                  { day: 'الخميس', minutes: 0 },
+                  { day: 'الجمعة', minutes: 0 },
+                ]
+              });
+              triggerToast('تمت إعادة ضبط الإحصائيات');
+            }}
+            onClose={() => setIsStatsOpen(false)}
+            settings={settings}
+          />
+        )}
+      </AnimatePresence>
+
+      {/* Reading Reminders Modal */}
+      <AnimatePresence>
+        {isReminderModalOpen && (
+          <ReminderModal
+            article={reminderTargetArticle || selectedArticle}
+            reminders={reminders}
+            onAddReminder={(newRem) => {
+              const item: ReadingReminder = {
+                ...newRem,
+                id: `rem-${Date.now()}`,
+                createdAt: new Date().toISOString(),
+              };
+              setReminders(prev => [item, ...prev]);
+              triggerToast('تم ضبط تذكير القراءة بنجاح!');
+            }}
+            onDeleteReminder={(remId) => {
+              setReminders(prev => prev.filter(r => r.id !== remId));
+              triggerToast('تم حذف التذكير');
+            }}
+            onOpenArticle={(artId) => {
+              const found = articles.find(a => a.id === artId);
+              if (found) {
+                setIsReminderModalOpen(false);
+                setSelectedArticle(found);
+              }
+            }}
+            onClose={() => setIsReminderModalOpen(false)}
             settings={settings}
           />
         )}
@@ -735,6 +1043,9 @@ export function App() {
           <SettingsModal
             settings={settings}
             onUpdateSettings={(newS) => setSettings(s => ({ ...s, ...newS }))}
+            onOpenStats={() => openModalWithHistory(() => setIsStatsOpen(true))}
+            onOpenReminders={() => openModalWithHistory(() => setIsReminderModalOpen(true))}
+            onClearAppData={handleClearAppData}
             onClose={() => setIsSettingsOpen(false)}
           />
         )}

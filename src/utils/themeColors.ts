@@ -172,37 +172,37 @@ export const FONT_SIZES: Record<FontSize, { title: string; body: string; labelAr
 export function getBackgroundClasses(darkMode: DarkMode) {
   if (darkMode === 'oled') {
     return {
-      bg: 'bg-[#060b18] text-blue-50',
-      surface: 'bg-[#0a1226] text-blue-50',
-      card: 'bg-[#0f1b38] hover:bg-[#142347] shadow-xl shadow-[#03060f]/70 text-blue-50',
-      header: 'bg-[#060b18]/90 text-blue-50',
-      elevated: 'bg-[#15244a] text-blue-50',
-      muted: 'text-blue-200/60',
-      hover: 'hover:bg-[#162752] transition-all',
-      divider: 'border-blue-900/30',
+      bg: 'bg-black text-slate-100',
+      surface: 'bg-zinc-950 text-slate-100 border border-zinc-800',
+      card: 'bg-zinc-900 hover:bg-zinc-850 shadow-md border border-zinc-800 text-slate-100',
+      header: 'bg-black/95 text-slate-100 border-b border-zinc-800',
+      elevated: 'bg-zinc-800 text-slate-100',
+      muted: 'text-zinc-400',
+      hover: 'hover:bg-zinc-800 transition-colors',
+      divider: 'border-zinc-800',
     };
   }
   if (darkMode === 'dark') {
     return {
-      bg: 'bg-[#0a1128] text-slate-100',
-      surface: 'bg-[#0f1a3a] text-slate-100',
-      card: 'bg-[#13224b] hover:bg-[#182b5e] shadow-lg shadow-[#050a17]/50 text-slate-100',
-      header: 'bg-[#0a1128]/90 text-slate-100',
-      elevated: 'bg-[#192b5c] text-slate-100',
-      muted: 'text-blue-200/65',
-      hover: 'hover:bg-[#1a2c5e] transition-all',
-      divider: 'border-blue-900/30',
+      bg: 'bg-slate-900 text-slate-100',
+      surface: 'bg-slate-800 text-slate-100 border border-slate-700/60',
+      card: 'bg-slate-800 hover:bg-slate-750 shadow-md border border-slate-700/60 text-slate-100',
+      header: 'bg-slate-900/95 text-slate-100 border-b border-slate-800',
+      elevated: 'bg-slate-700 text-slate-100',
+      muted: 'text-slate-400',
+      hover: 'hover:bg-slate-700/60 transition-colors',
+      divider: 'border-slate-800',
     };
   }
-  // Standard Global Light Mode: high-contrast, clean neutrals, soft elevation
+  // Standard Pure Light Mode
   return {
-    bg: 'bg-[#f4f6fa] text-slate-900',
-    surface: 'bg-white text-slate-900 shadow-sm',
-    card: 'bg-white hover:bg-slate-50/90 shadow-[0_4px_18px_-4px_rgba(0,0,0,0.06)] hover:shadow-lg text-slate-900',
-    header: 'bg-white/90 text-slate-900 shadow-xs',
+    bg: 'bg-white text-slate-900',
+    surface: 'bg-white text-slate-900 shadow-sm border border-slate-200',
+    card: 'bg-white hover:bg-slate-50 shadow-sm border border-slate-200 text-slate-900',
+    header: 'bg-white/95 text-slate-900 border-b border-slate-200',
     elevated: 'bg-slate-100 text-slate-900',
     muted: 'text-slate-500',
-    hover: 'hover:bg-slate-100 transition-all',
-    divider: 'border-slate-200/70',
+    hover: 'hover:bg-slate-100 transition-colors',
+    divider: 'border-slate-200',
   };
 }

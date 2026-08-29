@@ -99,12 +99,12 @@ export const AndroidHeader: React.FC<AndroidHeaderProps> = ({
       id="android-header-sticky"
       className={`AndroidHeader sticky top-0 z-40 w-full transition-all duration-300 ${
         isScrolled
-          ? 'bg-white/80 dark:bg-[#0a1128]/85 backdrop-blur-xl shadow-lg shadow-black/5 dark:shadow-blue-950/40 border-b border-slate-200/60 dark:border-blue-900/40 py-1.5'
-          : 'bg-white/95 dark:bg-[#0a1128]/95 backdrop-blur-md py-2.5 border-b border-slate-200/40 dark:border-blue-950/30'
+          ? 'bg-white/80 dark:bg-slate-900/85 backdrop-blur-xl shadow-lg shadow-black/5 dark:shadow-slate-950/40 border-b border-slate-200/60 dark:border-slate-800 py-1.5'
+          : 'bg-white/95 dark:bg-slate-900/95 backdrop-blur-md py-2.5 border-b border-slate-200/40 dark:border-slate-800'
       }`}
     >
       {/* Top Simulated Android Status Bar (Minimalist) */}
-      <div className="max-w-7xl mx-auto px-4 flex items-center justify-between text-[11px] font-semibold text-slate-500 dark:text-blue-200/70 select-none pb-1.5 border-b border-slate-100 dark:border-blue-950/40">
+      <div className="max-w-7xl mx-auto px-4 flex items-center justify-between text-[11px] font-semibold text-slate-500 dark:text-slate-400 select-none pb-1.5 border-b border-slate-100 dark:border-slate-800/80">
         <div className="flex items-center gap-1.5 font-mono">
           <span>{currentTime || '12:00'}</span>
         </div>
@@ -127,7 +127,7 @@ export const AndroidHeader: React.FC<AndroidHeaderProps> = ({
             id="quick-theme-toggle-btn"
             onClick={toggleDarkMode}
             title={getTranslation(settings.language, 'toggleLightDark')}
-            className="p-1 rounded-full text-slate-600 dark:text-blue-300 hover:bg-slate-200/60 dark:hover:bg-blue-900/50 transition-colors"
+            className="p-1 rounded-full text-slate-600 dark:text-slate-300 hover:bg-slate-200/60 dark:hover:bg-slate-800 transition-colors"
           >
             {settings.darkMode === 'light' ? (
               <Moon className="w-3.5 h-3.5 text-indigo-600" />
@@ -147,20 +147,20 @@ export const AndroidHeader: React.FC<AndroidHeaderProps> = ({
           </div>
           <div>
             <div className="flex items-center gap-1.5">
-              <h1 className="font-black text-base sm:text-lg tracking-tight leading-none">
+              <h1 className="font-black text-base sm:text-lg tracking-tight leading-none text-slate-900 dark:text-white">
                 {getTranslation(settings.language, 'appName')}
               </h1>
               <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
             </div>
-            <p className="text-[10px] font-medium text-slate-400 dark:text-blue-200/50 leading-tight hidden sm:block">
+            <p className="text-[10px] font-medium text-slate-400 dark:text-slate-400 leading-tight hidden sm:block">
               {getTranslation(settings.language, 'appSubtitle')}
             </p>
           </div>
         </div>
 
-        {/* Center: Quick Reading / Browsing Toggle Pill (زر التبديل السريع بين وضع القراءة والتصفح) */}
+        {/* Center: Quick Reading / Browsing Toggle Pill */}
         <div className="flex items-center justify-center">
-          <div className="bg-slate-200/70 dark:bg-[#0f1a3a] p-1 rounded-2xl flex items-center gap-1 shadow-inner select-none">
+          <div className="bg-slate-100 dark:bg-slate-800 p-1 rounded-2xl flex items-center gap-1 shadow-inner select-none border border-slate-200/60 dark:border-slate-700/60">
             {/* Browsing Button */}
             <button
               type="button"
@@ -170,7 +170,7 @@ export const AndroidHeader: React.FC<AndroidHeaderProps> = ({
               className={`flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-bold transition-all relative ${
                 !isReading
                   ? `${theme.primary} text-white shadow-md shadow-blue-600/30 scale-100`
-                  : 'text-slate-600 dark:text-blue-200/70 hover:text-slate-900 dark:hover:text-white'
+                  : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white'
               }`}
             >
               <LayoutGrid className="w-3.5 h-3.5" />
@@ -186,7 +186,7 @@ export const AndroidHeader: React.FC<AndroidHeaderProps> = ({
               className={`flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-bold transition-all relative ${
                 isReading
                   ? `${theme.primary} text-white shadow-md shadow-blue-600/30 scale-100`
-                  : 'text-slate-600 dark:text-blue-200/70 hover:text-slate-900 dark:hover:text-white'
+                  : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white'
               }`}
             >
               <BookOpen className="w-3.5 h-3.5" />
@@ -205,14 +205,14 @@ export const AndroidHeader: React.FC<AndroidHeaderProps> = ({
             className={`p-2 rounded-2xl transition-all ${
               isSearchOpen 
                 ? 'bg-blue-600 text-white' 
-                : `${bgClasses.card} ${bgClasses.hover} text-slate-700 dark:text-blue-100`
+                : `${bgClasses.card} ${bgClasses.hover} text-slate-700 dark:text-slate-200`
             }`}
             title="بحث"
           >
             {isSearchOpen ? <X className="w-4 h-4" /> : <Search className="w-4 h-4" />}
           </button>
 
-          {/* DEDICATED WEBSITES ICON (وضع أسماء المواقع في مكان مستقل في أيقونة بدل أيقونة الصوت) */}
+          {/* DEDICATED WEBSITES ICON */}
           <button
             type="button"
             id="header-websites-drawer-btn"
@@ -233,7 +233,7 @@ export const AndroidHeader: React.FC<AndroidHeaderProps> = ({
             onClick={handleRefresh}
             disabled={isRefreshing}
             title={getTranslation(settings.language, 'refreshNow')}
-            className={`p-2 rounded-2xl transition-all ${bgClasses.card} ${bgClasses.hover} text-slate-700 dark:text-blue-100 disabled:opacity-50`}
+            className={`p-2 rounded-2xl transition-all ${bgClasses.card} ${bgClasses.hover} text-slate-700 dark:text-slate-200 disabled:opacity-50`}
           >
             <RefreshCw className={`w-4 h-4 ${isRefreshing ? 'animate-spin text-blue-500' : ''}`} />
           </button>
@@ -244,7 +244,7 @@ export const AndroidHeader: React.FC<AndroidHeaderProps> = ({
             id="header-notifications-btn"
             onClick={onOpenNotifications}
             title={getTranslation(settings.language, 'notifications')}
-            className={`p-2 rounded-2xl transition-all relative ${bgClasses.card} ${bgClasses.hover} text-slate-700 dark:text-blue-100`}
+            className={`p-2 rounded-2xl transition-all relative ${bgClasses.card} ${bgClasses.hover} text-slate-700 dark:text-slate-200`}
           >
             <Bell className="w-4 h-4" />
             {unreadNotificationsCount > 0 && (
@@ -260,7 +260,7 @@ export const AndroidHeader: React.FC<AndroidHeaderProps> = ({
             id="header-settings-btn"
             onClick={onOpenSettings}
             title={getTranslation(settings.language, 'settings')}
-            className={`p-2 rounded-2xl transition-all ${bgClasses.card} ${bgClasses.hover} text-slate-700 dark:text-blue-100`}
+            className={`p-2 rounded-2xl transition-all ${bgClasses.card} ${bgClasses.hover} text-slate-700 dark:text-slate-200`}
           >
             <SlidersHorizontal className="w-4 h-4" />
           </button>
@@ -285,11 +285,7 @@ export const AndroidHeader: React.FC<AndroidHeaderProps> = ({
                 onChange={(e) => onSearchChange(e.target.value)}
                 placeholder={getTranslation(settings.language, 'searchPlaceholder')}
                 autoFocus
-                className={`w-full pr-10 pl-10 py-2.5 rounded-2xl text-xs font-semibold focus:outline-none focus:ring-2 ${theme.ring} shadow-inner ${
-                  settings.darkMode === 'light'
-                    ? 'bg-slate-100 text-slate-900 placeholder:text-slate-400'
-                    : 'bg-[#0e1938] text-white placeholder:text-blue-300/40'
-                }`}
+                className={`w-full pr-10 pl-10 py-2.5 rounded-2xl text-xs font-semibold focus:outline-none focus:ring-2 ${theme.ring} shadow-inner bg-slate-100 dark:bg-slate-800 text-slate-900 dark:text-white placeholder:text-slate-400 dark:placeholder:text-slate-500 border border-slate-200/50 dark:border-slate-700/50`}
               />
               {searchQuery && (
                 <button

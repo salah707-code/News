@@ -1,22 +1,20 @@
 import React, { useState } from 'react';
 import { 
   Bookmark, 
-  Share2, 
   Clock, 
   Eye, 
   Zap,
-  Check,
   Trash2,
-  ExternalLink,
   Languages,
   ArrowRight,
-  Globe2,
   Sparkles,
   BookOpen
 } from 'lucide-react';
 import { NewsArticle, AppSettings } from '../types';
 import { THEME_CONFIG, FONT_SIZES, getBackgroundClasses } from '../utils/themeColors';
 import { getTranslation } from '../utils/translations';
+import { getDistinctArticleImage } from '../utils/newsImages';
+import { CachedImage } from './CachedImage';
 import { motion, useAnimation, PanInfo } from 'motion/react';
 
 interface ArticleCardProps {
@@ -37,7 +35,6 @@ export const ArticleCard: React.FC<ArticleCardProps> = ({
   settings,
 }) => {
   const [imageError, setImageError] = useState(false);
-  const [isCopied, setIsCopied] = useState(false);
   const [isTranslated, setIsTranslated] = useState(false);
   const [isTranslating, setIsTranslating] = useState(false);
   const [isDragging, setIsDragging] = useState(false);
@@ -51,6 +48,11 @@ export const ArticleCard: React.FC<ArticleCardProps> = ({
   const displayTitle = isTranslated && article.translatedTitle ? article.translatedTitle : article.title;
   const displaySummary = isTranslated && article.translatedSummary ? article.translatedSummary : article.summary;
 
+  // Distinct context image tailored to title and category
+  const displayImage = imageError || !article.imageUrl
+    ? getDistinctArticleImage(article.id, article.category, article.isBreaking, article.title)
+    : article.imageUrl;
+
   // Relative time helper
   const getRelativeTime = (isoString: string) => {
     const diffMs = Date.now() - new Date(isoString).getTime();
@@ -60,26 +62,6 @@ export const ArticleCard: React.FC<ArticleCardProps> = ({
     const diffHours = Math.floor(diffMins / 60);
     if (diffHours < 24) return getTranslation(settings.language, 'hoursAgo', { n: diffHours });
     return new Date(isoString).toLocaleDateString(settings.language === 'ar' ? 'ar-EG' : 'en-US');
-  };
-
-  const handleShare = async (e: React.MouseEvent) => {
-    e.stopPropagation();
-    e.preventDefault();
-    if (navigator.share) {
-      try {
-        await navigator.share({
-          title: displayTitle,
-          text: displaySummary,
-          url: article.link || window.location.href,
-        });
-      } catch (err) {
-        // Fallback
-      }
-    } else {
-      navigator.clipboard.writeText(`${displayTitle} - ${article.link}`);
-      setIsCopied(true);
-      setTimeout(() => setIsCopied(false), 2000);
-    }
   };
 
   const handleDelete = (e: React.MouseEvent) => {
@@ -128,7 +110,6 @@ export const ArticleCard: React.FC<ArticleCardProps> = ({
   };
 
   const handleCardClick = (e: React.MouseEvent) => {
-    // If the click happened on an interactive button, do not open
     const target = e.target as HTMLElement;
     if (target.closest('button') || target.closest('a')) {
       return;
@@ -138,23 +119,28 @@ export const ArticleCard: React.FC<ArticleCardProps> = ({
 
   // Drag handler for swipe-to-delete
   const handleDragEnd = async (_event: MouseEvent | TouchEvent | PointerEvent, info: PanInfo) => {
-    setTimeout(() => setIsDragging(false), 50);
-    const threshold = 120;
-    if (info.offset.x > threshold) {
-      // Swiped Right
-      await controls.start({ x: 500, opacity: 0, transition: { duration: 0.25 } });
-      if (onDeleteArticle) onDeleteArticle(article);
-    } else if (info.offset.x < -threshold) {
-      // Swiped Left
-      await controls.start({ x: -500, opacity: 0, transition: { duration: 0.25 } });
-      if (onDeleteArticle) onDeleteArticle(article);
+    const offsetX = info?.offset?.x ?? 0;
+    const velocityX = info?.velocity?.x ?? 0;
+    const isSwiped = Math.abs(offsetX) > 75 || Math.abs(velocityX) > 400;
+    if (isSwiped) {
+      const direction = offsetX > 0 || velocityX > 0 ? 1 : -1;
+      await controls.start({ 
+        x: direction * 600, 
+        opacity: 0, 
+        transition: { duration: 0.2, ease: 'easeOut' } 
+      });
+      if (onDeleteArticle) {
+        onDeleteArticle(article);
+      }
     } else {
-      controls.start({ x: 0, opacity: 1, transition: { type: 'spring', stiffness: 300, damping: 25 } });
+      controls.start({ 
+        x: 0, 
+        opacity: 1, 
+        transition: { type: 'spring', stiffness: 350, damping: 25 } 
+      });
     }
+    setTimeout(() => setIsDragging(false), 50);
   };
-
-  const fallbackImage = 'https://images.unsplash.com/photo-1585829365295-ab7cd400c167?auto=format&fit=crop&w=800&q=80';
-  const displayImage = imageError || !article.imageUrl ? fallbackImage : article.imageUrl;
 
   // -------------------------------------------------------------
   // 1. IMMERSIVE READING MODE LAYOUT (عند تفعيل وضع القراءة في الهيدر)
@@ -171,17 +157,17 @@ export const ArticleCard: React.FC<ArticleCardProps> = ({
         <motion.article
           id={`article-card-reader-${article.id}`}
           drag="x"
+          dragDirectionLock={true}
           dragConstraints={{ left: 0, right: 0 }}
-          dragElastic={0.35}
+          dragElastic={0.75}
           onDragStart={() => setIsDragging(true)}
           onDragEnd={handleDragEnd}
           animate={controls}
-          onTap={(_, info) => {
-            if (Math.abs(info.offset.x) < 8 && Math.abs(info.offset.y) < 8) {
-              onOpenArticle(article);
+          onClick={(e) => {
+            if (!isDragging) {
+              handleCardClick(e);
             }
           }}
-          onClick={handleCardClick}
           className={`group rounded-3xl overflow-hidden cursor-pointer transition-all duration-300 p-6 sm:p-7 relative z-10 flex flex-col space-y-4 shadow-sm hover:shadow-md ${bgClasses.card}`}
         >
           {/* Header Meta: Source & Time & Translation Pill */}
@@ -233,12 +219,9 @@ export const ArticleCard: React.FC<ArticleCardProps> = ({
 
           {/* High-res Image */}
           <div className="w-full aspect-[21/9] sm:aspect-[16/8] rounded-2xl overflow-hidden relative bg-slate-100 dark:bg-[#0c1630]">
-            <img
+            <CachedImage
               src={displayImage}
               alt={displayTitle}
-              loading="lazy"
-              onError={() => setImageError(true)}
-              referrerPolicy="no-referrer"
               className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-105"
             />
           </div>
@@ -248,7 +231,7 @@ export const ArticleCard: React.FC<ArticleCardProps> = ({
             {displaySummary}
           </p>
 
-          {/* Footer controls: Bookmark, Share, Delete, Open in Full View */}
+          {/* Footer controls: Bookmark, Delete, Open in Full View */}
           <div className="pt-3 border-t border-slate-100 dark:border-blue-900/30 flex items-center justify-between gap-2">
             <div className="flex items-center gap-2">
               <button
@@ -268,17 +251,6 @@ export const ArticleCard: React.FC<ArticleCardProps> = ({
                 title={getTranslation(settings.language, 'favorites')}
               >
                 <Bookmark className={`w-4 h-4 ${isBookmarked ? 'fill-current' : ''}`} />
-              </button>
-
-              <button
-                type="button"
-                id={`reader-share-${article.id}`}
-                onPointerDown={(e) => e.stopPropagation()}
-                onClick={handleShare}
-                className={`p-2 rounded-2xl transition-all ${bgClasses.elevated} ${bgClasses.hover} text-sky-500`}
-                title={getTranslation(settings.language, 'shareArticle')}
-              >
-                {isCopied ? <Check className="w-4 h-4 text-emerald-500" /> : <Share2 className="w-4 h-4 text-sky-500" />}
               </button>
 
               {onDeleteArticle && (
@@ -327,27 +299,24 @@ export const ArticleCard: React.FC<ArticleCardProps> = ({
         <motion.div
           id={`article-card-grid-${article.id}`}
           drag="x"
+          dragDirectionLock={true}
           dragConstraints={{ left: 0, right: 0 }}
-          dragElastic={0.35}
+          dragElastic={0.75}
           onDragStart={() => setIsDragging(true)}
           onDragEnd={handleDragEnd}
           animate={controls}
-          onTap={(_, info) => {
-            if (Math.abs(info.offset.x) < 8 && Math.abs(info.offset.y) < 8) {
-              onOpenArticle(article);
+          onClick={(e) => {
+            if (!isDragging) {
+              handleCardClick(e);
             }
           }}
-          onClick={handleCardClick}
           className={`group rounded-3xl overflow-hidden cursor-pointer transition-all duration-300 flex flex-col justify-between relative z-10 shadow-sm hover:shadow-md ${bgClasses.card}`}
         >
           {/* Square Image Top */}
-          <div className="w-full aspect-[4/3] sm:aspect-square overflow-hidden relative bg-slate-200 dark:bg-[#0d1733]">
-            <img
+          <div className="w-full aspect-[4/3] sm:aspect-square overflow-hidden relative bg-slate-100 dark:bg-slate-800">
+            <CachedImage
               src={displayImage}
               alt={displayTitle}
-              loading="lazy"
-              onError={() => setImageError(true)}
-              referrerPolicy="no-referrer"
               className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-105"
             />
             {/* Overlay Badges */}
@@ -399,14 +368,6 @@ export const ArticleCard: React.FC<ArticleCardProps> = ({
                     <Trash2 className="w-3.5 h-3.5" />
                   </button>
                 )}
-                <button
-                  type="button"
-                  onPointerDown={(e) => e.stopPropagation()}
-                  onClick={handleShare}
-                  className={`p-1.5 rounded-xl ${bgClasses.elevated} text-sky-500`}
-                >
-                  {isCopied ? <Check className="w-3.5 h-3.5 text-emerald-500" /> : <Share2 className="w-3.5 h-3.5" />}
-                </button>
               </div>
 
               <button
@@ -442,27 +403,24 @@ export const ArticleCard: React.FC<ArticleCardProps> = ({
       <motion.article
         id={`article-card-${article.id}`}
         drag="x"
+        dragDirectionLock={true}
         dragConstraints={{ left: 0, right: 0 }}
-        dragElastic={0.35}
+        dragElastic={0.75}
         onDragStart={() => setIsDragging(true)}
         onDragEnd={handleDragEnd}
         animate={controls}
-        onTap={(_, info) => {
-          if (Math.abs(info.offset.x) < 8 && Math.abs(info.offset.y) < 8) {
-            onOpenArticle(article);
+        onClick={(e) => {
+          if (!isDragging) {
+            handleCardClick(e);
           }
         }}
-        onClick={handleCardClick}
         className={`group rounded-3xl overflow-hidden cursor-pointer transition-all duration-300 relative z-10 flex flex-col sm:flex-row shadow-sm hover:shadow-md ${bgClasses.card}`}
       >
         {/* Dynamic Image Container */}
-        <div className="sm:w-2/5 aspect-[16/10] sm:aspect-auto sm:min-h-[190px] relative overflow-hidden bg-slate-200 dark:bg-[#0c1630] shrink-0">
-          <img
+        <div className="sm:w-2/5 aspect-[16/10] sm:aspect-auto sm:min-h-[190px] relative overflow-hidden bg-slate-100 dark:bg-slate-800 shrink-0">
+          <CachedImage
             src={displayImage}
             alt={displayTitle}
-            loading="lazy"
-            onError={() => setImageError(true)}
-            referrerPolicy="no-referrer"
             className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-105"
           />
           {/* Badges on Image */}
@@ -539,17 +497,6 @@ export const ArticleCard: React.FC<ArticleCardProps> = ({
                   <Trash2 className="w-3.5 h-3.5" />
                 </button>
               )}
-
-              <button
-                type="button"
-                id={`share-btn-${article.id}`}
-                onPointerDown={(e) => e.stopPropagation()}
-                onClick={handleShare}
-                className={`p-1.5 rounded-xl ${bgClasses.elevated} ${bgClasses.hover} text-sky-500 transition-colors`}
-                title={getTranslation(settings.language, 'shareArticle')}
-              >
-                {isCopied ? <Check className="w-3.5 h-3.5 text-emerald-500" /> : <Share2 className="w-3.5 h-3.5" />}
-              </button>
             </div>
 
             <div className="flex items-center gap-1.5">
