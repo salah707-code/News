@@ -1,5 +1,4 @@
-
-name: Android Build
+name: The Reporter - Android Build
 
 on:
   push:
@@ -14,38 +13,80 @@ permissions:
   contents: read
 
 jobs:
-  inspect:
-    name: Inspect Android Project
+  build-android:
+    name: Build The Reporter APK
     runs-on: ubuntu-latest
 
     steps:
+      # 1. تحميل المشروع
       - name: Checkout
         uses: actions/checkout@v4
 
-      - name: Show repository
+      # 2. Node.js
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+
+      # 3. Java
+      - name: Setup JDK
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
+          cache: gradle
+
+      # 4. Android SDK
+      - name: Setup Android SDK
+        uses: android-actions/setup-android@v3
+
+      # 5. تثبيت حزم المشروع
+      - name: Install dependencies
+        run: npm install
+
+      # 6. تثبيت Capacitor
+      - name: Install Capacitor
         run: |
-          echo "=== Repository ==="
-          find . -maxdepth 3 -type f | sort
+          npm install @capacitor/core @capacitor/cli @capacitor/android
 
-      - name: Extract Android ZIP
+      # 7. بناء واجهة React/Vite فقط
+      - name: Build web application
+        run: npx vite build
+
+      # 8. إنشاء مشروع Android
+      - name: Create Android project
         run: |
-          mkdir -p android-project
-          unzip -q News-Android-GitHub-Actions.zip -d android-project
+          if [ ! -d "android" ]; then
+            npx cap add android
+          else
+            echo "Android directory already exists."
+          fi
 
-      - name: Inspect Android project
+      # 9. مزامنة Capacitor
+      - name: Sync Android
+        run: npx cap sync android
+
+      # 10. إعطاء Gradle صلاحية التنفيذ
+      - name: Make Gradle executable
+        run: chmod +x android/gradlew
+
+      # 11. بناء APK Debug
+      - name: Build Debug APK
+        working-directory: android
+        run: ./gradlew assembleDebug --stacktrace
+
+      # 12. التحقق من APK
+      - name: Verify APK
         run: |
-          echo "=== Extracted files ==="
-          find android-project -maxdepth 5 -type f | sort
+          echo "Generated APK:"
+          find android/app/build/outputs/apk -type f -name "*.apk" -print
 
-          echo ""
-          echo "=== Gradle wrappers ==="
-          find android-project -type f -name gradlew -print
-
-          echo ""
-          echo "=== Gradle settings ==="
-          find android-project -type f \( \
-            -name "settings.gradle" -o \
-            -name "settings.gradle.kts" -o \
-            -name "build.gradle" -o \
-            -name "build.gradle.kts" \
-          \) -print
+      # 13. رفع APK
+      - name: Upload APK
+        uses: actions/upload-artifact@v4
+        with:
+          name: The-Reporter-Debug-APK
+          path: android/app/build/outputs/apk/debug/*.apk
+          if-no-files-found: error
+          retention-days: 30
