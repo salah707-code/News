@@ -16,8 +16,8 @@ export function stripTrackingParams(rawUrl: string): string {
 }
 
 export function chooseBestId(item: any, src: NewsSource, idx: number): string {
-  const link = item.link || item.guid || src.url || `source-${src.id}`;
-  const canonical = stripTrackingParams(link);
+  const link = item.link || item.guid || item.isoDate || src.url || `source-${src.id}`;
+  const canonical = stripTrackingParams(String(link || ''));
   if (item.id) return String(item.id);
   if (item.guid) return String(item.guid);
   if (canonical) return `${src.id}::${canonical}`;
@@ -79,14 +79,20 @@ export function dedupeArticles(articles: NewsArticle[]): NewsArticle[] {
   const seen = new Set<string>();
   const out: NewsArticle[] = [];
   for (const a of articles) {
-    const keyCandidates = [a.link, a.id, `${a.title.trim().toLowerCase()}::${a.sourceId}`].filter(Boolean);
+    // canonicalize link for keys
+    const canonicalLink = a.link ? stripTrackingParams(a.link) : '';
+    const titleKey = a.title ? a.title.trim().toLowerCase() : '';
+    const keyCandidates = [a.id || '', canonicalLink || '', `${titleKey}::${a.sourceId}`].filter(Boolean);
     let found = false;
     for (const k of keyCandidates) {
       const kk = k.toString();
       if (seen.has(kk)) { found = true; break; }
     }
     if (!found) {
-      seen.add(keyCandidates[0] || a.id);
+      // add all keys to seen for robust dedup
+      for (const k of keyCandidates) {
+        seen.add(k.toString());
+      }
       out.push(a);
     }
   }
