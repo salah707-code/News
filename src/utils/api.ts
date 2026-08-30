@@ -18,8 +18,25 @@ export function getApiBaseUrl(): string {
   return '';
 }
 
-export async function fetchApi(endpoint: string, options?: RequestInit): Promise<Response> {
+export function getApiUrl(endpoint: string): string {
   const baseUrl = getApiBaseUrl();
-  const url = `${baseUrl}${endpoint.startsWith('/') ? endpoint : `/${endpoint}`}`;
+  if (!endpoint.startsWith('/')) endpoint = `/${endpoint}`;
+  return baseUrl ? `${baseUrl}${endpoint}` : endpoint;
+}
+
+export async function fetchWithTimeout(input: RequestInfo, init: RequestInit = {}, timeout = 15000): Promise<Response> {
+  const controller = new AbortController();
+  const id = setTimeout(() => controller.abort(), timeout);
+  try {
+    const merged = { ...init, signal: controller.signal } as RequestInit;
+    const res = await fetch(input, merged);
+    return res;
+  } finally {
+    clearTimeout(id);
+  }
+}
+
+export async function fetchApi(endpoint: string, options?: RequestInit): Promise<Response> {
+  const url = getApiUrl(endpoint);
   return fetch(url, options);
 }
