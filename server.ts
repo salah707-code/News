@@ -8,7 +8,7 @@ import { GoogleGenAI } from "@google/genai";
 dotenv.config();
 
 const app = express();
-const PORT = 3000;
+const PORT = Number(process.env.PORT || 3000);
 
 // CORS headers for Android Webview and local clients
 app.use((req, res, next) => {
@@ -63,105 +63,173 @@ function getAIClient(): GoogleGenAI | null {
 
 // Health check
 app.get("/api/health", (req, res) => {
-  res.json({ status: "ok", timestamp: new Date().toISOString() });
+  res.json({
+    status: "ok",
+    service: "the-reporter-api",
+    rss: true,
+    timestamp: new Date().toISOString(),
+  });
 });
 
-// RSS Feed fetcher endpoint with smart fallback
+// RSS Feed fetcher endpoint.
+// The browser never contacts RSS sites directly; this server fetches and parses them,
+// avoiding CORS restrictions and keeping one bad source from affecting the others.
 app.post("/api/rss", async (req, res) => {
+  const { url } = req.body ?? {};
+
+  if (!url || typeof url !== "string") {
+    return res.status(400).json({ error: "Missing or invalid feed URL" });
+  }
+
+  let feedUrl: URL;
   try {
-    const { url } = req.body;
-    if (!url || typeof url !== 'string') {
-      return res.status(400).json({ error: "Missing or invalid feed URL" });
+    feedUrl = new URL(url);
+    if (!['http:', 'https:'].includes(feedUrl.protocol)) {
+      return res.status(400).json({ error: "Only HTTP and HTTPS feed URLs are supported" });
     }
+  } catch {
+    return res.status(400).json({ error: "Invalid feed URL" });
+  }
 
-    let feed: any = null;
+  try {
+    const response = await fetch(feedUrl, {
+      redirect: 'follow',
+      signal: AbortSignal.timeout(15000),
+      headers: {
+        'User-Agent': 'TheReporter/1.0 (+RSS reader)',
+        'Accept': 'application/rss+xml, application/atom+xml, application/xml, text/xml, */*;q=0.8',
+        'Accept-Language': 'ar,en;q=0.8',
+        'Cache-Control': 'no-cache',
+      },
+    });
 
-    // Attempt 1: rss-parser parseURL
-    try {
-      feed = await rssParser.parseURL(url);
-    } catch (err: any) {
-      // Attempt 2: direct fetch with headers then parseString
-      try {
-        const response = await fetch(url, {
-          headers: {
-            'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36',
-            'Accept': 'application/rss+xml, application/xml, text/xml, */*',
-          },
-          signal: AbortSignal.timeout(10000)
-        });
-        if (response.ok) {
-          const text = await response.text();
-          feed = await rssParser.parseString(text);
-        }
-      } catch (innerErr) {
-        console.warn(`Direct fetch also failed for ${url}:`, innerErr);
-      }
-    }
-
-    if (!feed || !feed.items || feed.items.length === 0) {
-      // If live feed parsing fails (e.g. CORS/Firewall or offline feed), provide structured response
-      return res.json({
-        title: "تغذية إخبارية",
-        description: "تحديثات مستمرة",
-        link: url,
-        items: []
+    if (!response.ok) {
+      return res.status(502).json({
+        error: `RSS source returned HTTP ${response.status}`,
+        source: feedUrl.toString(),
+        items: [],
       });
     }
-    
-    const items = (feed.items || []).map((rawItem: any, idx: number) => {
-      const item = rawItem as any;
-      // Extract best image
-      let imageUrl = "";
-      if (item.enclosure && item.enclosure.url) {
-        imageUrl = item.enclosure.url;
-      } else if (item['media:content'] && item['media:content'].$.url) {
-        imageUrl = item['media:content'].$.url;
-      } else if (item.mediaContent && Array.isArray(item.mediaContent) && item.mediaContent[0]?.$?.url) {
-        imageUrl = item.mediaContent[0].$.url;
-      } else if (item.mediaThumbnail && Array.isArray(item.mediaThumbnail) && item.mediaThumbnail[0]?.$?.url) {
-        imageUrl = item.mediaThumbnail[0].$.url;
-      } else if (item['media:thumbnail'] && item['media:thumbnail'].$.url) {
-        imageUrl = item['media:thumbnail'].$.url;
+
+    const xml = await response.text();
+    if (!xml.trim()) {
+      return res.status(502).json({
+        error: 'RSS source returned an empty response',
+        source: feedUrl.toString(),
+        items: [],
+      });
+    }
+
+    const feed: any = await rssParser.parseString(xml);
+    const rawItems = Array.isArray(feed?.items) ? feed.items : [];
+
+    if (rawItems.length === 0) {
+      return res.status(502).json({
+        error: 'The source responded, but no RSS/Atom items were found',
+        source: feedUrl.toString(),
+        items: [],
+      });
+    }
+
+    const makeAbsolute = (value: unknown): string => {
+      if (typeof value !== 'string' || !value.trim()) return '';
+      try {
+        return new URL(value.trim(), feedUrl).toString();
+      } catch {
+        return '';
+      }
+    };
+
+    const getAttrUrl = (value: any): string => {
+      if (!value) return '';
+      if (typeof value === 'string') return makeAbsolute(value);
+      return makeAbsolute(value.url || value.href || value.$?.url || value.$?.href);
+    };
+
+    const extractImage = (item: any): string => {
+      const directCandidates = [
+        item?.enclosure?.url,
+        item?.enclosure?.href,
+        item?.mediaContent?.[0]?.$?.url,
+        item?.mediaContent?.[0]?.url,
+        item?.mediaThumbnail?.[0]?.$?.url,
+        item?.mediaThumbnail?.[0]?.url,
+        item?.['media:content']?.$?.url,
+        item?.['media:thumbnail']?.$?.url,
+        item?.image?.url,
+        item?.image,
+      ];
+
+      for (const candidate of directCandidates) {
+        const absolute = getAttrUrl(candidate);
+        if (absolute && !absolute.toLowerCase().endsWith('.svg')) return absolute;
       }
 
-      // Check inside description/content/contentEncoded for <img> or &lt;img tags
-      const contentPool = [item.content, item.contentEncoded, item.description, item['content:encoded']].filter(Boolean).join(' ');
-      if (!imageUrl && contentPool) {
-        const unescaped = contentPool.replace(/&lt;/g, '<').replace(/&gt;/g, '>').replace(/&quot;/g, '"');
-        const imgMatch = unescaped.match(/<img[^>]+src=["']([^"']+)["']/i);
-        if (imgMatch && imgMatch[1] && !imgMatch[1].endsWith('.svg') && !imgMatch[1].includes('feedburner')) {
-          imageUrl = imgMatch[1];
-        }
-      }
+      const pool = [
+        item?.contentEncoded,
+        item?.content,
+        item?.summary,
+        item?.description,
+      ].filter(Boolean).join(' ');
 
-      // Strip HTML from snippet
-      const cleanSummary = (item.contentSnippet || item.summary || item.description || "")
-        .replace(/<[^>]*>?/gm, '')
-        .replace(/&nbsp;/g, ' ')
-        .trim();
+      const html = String(pool)
+        .replace(/&lt;/gi, '<')
+        .replace(/&gt;/gi, '>')
+        .replace(/&quot;/gi, '"')
+        .replace(/&#39;/gi, "'");
+
+      const match = html.match(/<img[^>]+src=["']([^"']+)["']/i);
+      return match?.[1] ? makeAbsolute(match[1]) : '';
+    };
+
+    const cleanText = (value: unknown): string => String(value || '')
+      .replace(/<[^>]*>/g, ' ')
+      .replace(/&nbsp;/gi, ' ')
+      .replace(/\s+/g, ' ')
+      .trim();
+
+    const safeDate = (value: unknown): string => {
+      const parsed = typeof value === 'string' ? Date.parse(value) : NaN;
+      return Number.isNaN(parsed) ? new Date().toISOString() : new Date(parsed).toISOString();
+    };
+
+    const items = rawItems.slice(0, 50).map((item: any, idx: number) => {
+      const link = makeAbsolute(item?.link || item?.guid || feedUrl.toString()) || feedUrl.toString();
+      const pubDate = safeDate(item?.isoDate || item?.pubDate || item?.published || item?.updated);
+      const summary = cleanText(item?.contentSnippet || item?.summary || item?.description);
+      const content = String(item?.contentEncoded || item?.content || item?.description || summary);
+      const title = cleanText(item?.title) || 'بدون عنوان';
 
       return {
-        id: item.guid || item.link || `rss-${idx}-${Date.now()}`,
-        title: item.title || "بدون عنوان",
-        link: item.link || "#",
-        pubDate: item.pubDate || item.isoDate || new Date().toISOString(),
-        summary: cleanSummary,
-        fullContent: item.contentEncoded || item.content || cleanSummary,
-        author: item.creator || item.author || feed.title || "محرر الأخبار",
-        imageUrl: imageUrl || null,
-        categories: item.categories || [],
+        id: String(item?.guid || item?.id || link || `${feedUrl}#${idx}`),
+        title,
+        link,
+        pubDate,
+        summary,
+        fullContent: content,
+        author: cleanText(item?.creator || item?.author) || cleanText(feed?.title) || 'محرر الأخبار',
+        imageUrl: extractImage(item),
+        categories: Array.isArray(item?.categories) ? item.categories : [],
+        isBreaking: Boolean(item?.isBreaking),
       };
     });
 
-    res.json({
-      title: feed.title || "تغذية إخبارية",
-      description: feed.description || "",
-      link: feed.link || url,
-      items: items.slice(0, 30),
+    return res.json({
+      title: feed?.title || 'تغذية إخبارية',
+      description: feed?.description || '',
+      link: makeAbsolute(feed?.link) || feedUrl.toString(),
+      source: feedUrl.toString(),
+      fetchedAt: new Date().toISOString(),
+      items,
     });
-  } catch (err: any) {
-    console.error("RSS parsing error:", err.message);
-    res.status(500).json({ error: "Failed to parse RSS feed", details: err.message, items: [] });
+  } catch (error: any) {
+    console.error(`RSS error for ${feedUrl.toString()}:`, error?.message || error);
+    return res.status(502).json({
+      error: 'Failed to fetch or parse RSS feed',
+      details: error?.message || String(error),
+      source: feedUrl.toString(),
+      items: [],
+    });
   }
 });
 
