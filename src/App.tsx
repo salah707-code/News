@@ -1,3 +1,46 @@
+// Helpers (أضف في أعلى الملف أو في utils)
+const DEFAULT_SOURCE_TIMEOUT = 15000; // ms
+async function fetchWithTimeout(url: string, init: RequestInit = {}, timeout = DEFAULT_SOURCE_TIMEOUT) {
+  const controller = new AbortController();
+  const id = setTimeout(() => controller.abort(), timeout);
+  try {
+    const res = await fetch(url, { ...init, signal: controller.signal });
+    return res;
+  } finally {
+    clearTimeout(id);
+  }
+}
+
+function stripTrackingParams(rawUrl: string): string {
+  try {
+    const u = new URL(rawUrl);
+    // احذف params شائعة التعقب
+    ['utm_source','utm_medium','utm_campaign','utm_term','utm_content','fbclid','gclid'].forEach(p => u.searchParams.delete(p));
+    return u.toString();
+  } catch (e) {
+    return rawUrl;
+  }
+}
+
+function normalizeItem(item: any, src: NewsSource): NewsArticle {
+  const link = item.link || item.guid || src.url;
+  return {
+    id: item.id || item.guid || `${src.id}-${stripTrackingParams(link)}-${Date.parse(item.pubDate||item.published||new Date().toISOString())}`,
+    title: item.title || 'بدون عنوان',
+    summary: item.summary || item.description || '',
+    fullContent: item.content || item.fullContent || item['content:encoded'] || '',
+    author: item.author || src.name,
+    source: src.name,
+    sourceId: src.id,
+    category: normalizeLocationCategory(src.category),
+    pubDate: item.pubDate || item.published || item.updated || new Date().toISOString(),
+    imageUrl: item.imageUrl || item.enclosure?.url || item['media:content']?.url || '',
+    link: stripTrackingParams(link),
+    isBreaking: Boolean(item.isBreaking),
+    readTimeMinutes: item.readTimeMinutes || 3,
+    viewsCount: item.viewsCount || 0,
+  } as NewsArticle;
+}
 import React, { useState, useEffect, useMemo, useCallback, useRef } from 'react';
 import { 
   NewsArticle, 
