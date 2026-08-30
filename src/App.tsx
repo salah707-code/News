@@ -391,7 +391,7 @@ export function App() {
     const activeRssSources = sources.filter(s => s.enabled && s.rssUrl);
     
     try {
-      const fetchPromises = activeRssSources.slice(0, 6).map(async (src) => {
+      const fetchPromises = activeRssSources.slice().map(async (src) => {
         try {
           const res = await fetchApi('/api/rss', {
             method: 'POST',
@@ -434,18 +434,7 @@ export function App() {
         triggerToast(getTranslation(settings.language, 'refreshComplete'));
       } else {
         // Even if external RSS blocked, synthesize fresh timestamp updates so user sees immediate results
-        setArticles((prev) => {
-          return prev.map((art, idx) => {
-            if (idx < 3) {
-              return {
-                ...art,
-                pubDate: new Date().toISOString(),
-                viewsCount: (art.viewsCount || 100) + Math.floor(Math.random() * 15) + 1
-              };
-            }
-            return art;
-          });
-        });
+        
         triggerToast(getTranslation(settings.language, 'refreshComplete'));
       }
     } catch (err) {
