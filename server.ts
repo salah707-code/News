@@ -13,6 +13,12 @@ const PORT = 3000;
 app.use(express.json());
 
 const rssParser = new Parser({
+  headers: {
+    'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36',
+    'Accept': 'text/html,application/xhtml+xml,application/xml,application/rss+xml;q=0.9,*/*;q=0.8',
+    'Accept-Language': 'ar,en-US;q=0.9,en;q=0.8',
+  },
+  timeout: 12000,
   customFields: {
     item: [
       ['media:content', 'mediaContent', { keepArray: true }],
@@ -22,7 +28,6 @@ const rssParser = new Parser({
       ['dc:creator', 'creator']
     ]
   },
-  timeout: 10000,
 });
 
 // Lazy Gemini AI client
@@ -50,7 +55,7 @@ app.get("/api/health", (req, res) => {
   res.json({ status: "ok", timestamp: new Date().toISOString() });
 });
 
-// RSS Feed fetcher endpoint
+// RSS Feed fetcher endpoint with smart fallback
 app.post("/api/rss", async (req, res) => {
   try {
     const { url } = req.body;
@@ -58,9 +63,41 @@ app.post("/api/rss", async (req, res) => {
       return res.status(400).json({ error: "Missing or invalid feed URL" });
     }
 
-    const feed = await rssParser.parseURL(url);
+    let feed: any = null;
+
+    // Attempt 1: rss-parser parseURL
+    try {
+      feed = await rssParser.parseURL(url);
+    } catch (err: any) {
+      // Attempt 2: direct fetch with headers then parseString
+      try {
+        const response = await fetch(url, {
+          headers: {
+            'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36',
+            'Accept': 'application/rss+xml, application/xml, text/xml, */*',
+          },
+          signal: AbortSignal.timeout(10000)
+        });
+        if (response.ok) {
+          const text = await response.text();
+          feed = await rssParser.parseString(text);
+        }
+      } catch (innerErr) {
+        console.warn(`Direct fetch also failed for ${url}:`, innerErr);
+      }
+    }
+
+    if (!feed || !feed.items || feed.items.length === 0) {
+      // If live feed parsing fails (e.g. CORS/Firewall or offline feed), provide structured response
+      return res.json({
+        title: "تغذية إخبارية",
+        description: "تحديثات مستمرة",
+        link: url,
+        items: []
+      });
+    }
     
-    const items = (feed.items || []).map((rawItem, idx) => {
+    const items = (feed.items || []).map((rawItem: any, idx: number) => {
       const item = rawItem as any;
       // Extract best image
       let imageUrl = "";
@@ -113,11 +150,11 @@ app.post("/api/rss", async (req, res) => {
     });
   } catch (err: any) {
     console.error("RSS parsing error:", err.message);
-    res.status(500).json({ error: "Failed to parse RSS feed", details: err.message });
+    res.status(500).json({ error: "Failed to parse RSS feed", details: err.message, items: [] });
   }
 });
 
-// AI News Summarizer and Analyst endpoint
+// AI News Summarizer and Analyst endpoint (Arabic and English only)
 app.post("/api/ai-summary", async (req, res) => {
   try {
     const { title, content, language = 'ar' } = req.body;
@@ -131,14 +168,14 @@ app.post("/api/ai-summary", async (req, res) => {
       const textToSummarize = (content || title || "").slice(0, 300);
       return res.json({
         summary: `• ملخص سريع: ${title}\n• التفاصيل الأساسية: ${textToSummarize.slice(0, 150)}...\n• تم تحليل المحتوى بنجاح.`,
-        keyPoints: [title, "أهم التطورات المتعلقة بالخبر", "المتابعة مستمرة"],
+        keyPoints: [title, "أهم التطورات المتعلقة بالخبر", "المتابعة الميدانية مستمرة"],
         sentiment: "محايد",
         readingTimeMinutes: 2,
         isAiGenerated: false
       });
     }
 
-    const prompt = `أنت مساعد ذكاء اصطناعي إخباري خبير وموجز. قم بتحليل وتلخيص هذا الخبر بدقة باللغة ${language === 'ar' ? 'العربية الفصحى' : language === 'fr' ? 'الفرنسية' : 'الإنجليزية'}:
+    const prompt = `أنت مساعد ذكاء اصطناعي إخباري خبير وموجز. قم بتحليل وتلخيص هذا الخبر بدقة باللغة ${language === 'ar' ? 'العربية الفصحى' : 'الإنجليزية'}:
 عنوان الخبر: ${title}
 نص الخبر: ${content || title}
 
@@ -176,7 +213,7 @@ app.post("/api/ai-summary", async (req, res) => {
   }
 });
 
-// Live Translation endpoint
+// Live Translation endpoint (Arabic translation)
 app.post("/api/translate", async (req, res) => {
   try {
     const { title, summary, fullContent, targetLang = 'ar' } = req.body;
@@ -223,7 +260,6 @@ app.post("/api/translate", async (req, res) => {
     // Fallback translation helper for news articles
     const translateText = (text: string) => {
       if (!text) return '';
-      // Common news phrase replacements
       return text
         .replace(/Breakthrough/gi, 'إنجاز علمي ثوري')
         .replace(/Quantum Computing/gi, 'الحوسبة الكمومية')

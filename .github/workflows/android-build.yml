@@ -1,127 +1,75 @@
-name: The Reporter - Android APK
+name: Android Build
 
 on:
-  push:
-    branches:
-      - main
   workflow_dispatch:
-  pull_request:
-    branches:
-      - main
+  push:
+    branches: ["main", "master"]
 
 permissions:
   contents: read
 
 jobs:
-  android:
-    name: Build The Reporter
-    runs-on: ubuntu-latest
+  build-android:
+    name: Build APK and AAB
+    runs-on: ubuntu-24.04
 
     steps:
       - name: Checkout
         uses: actions/checkout@v4
 
-      - name: Extract Android project
-        run: |
-          rm -rf android-project
-          mkdir -p android-project
-          unzip -q News-Android-GitHub-Actions.zip -d android-project
-
-          test -f android-project/News-main/capacitor.config.ts
-          test -f android-project/News-main/package.json
-
       - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
           node-version: 22
+          cache: npm
+          cache-dependency-path: package.json
 
-      - name: Setup Java
-        uses: actions/setup-java@v5
+      - name: Setup Java 21
+        uses: actions/setup-java@v4
         with:
           distribution: temurin
-          java-version: '21'
+          java-version: "21"
+          cache: gradle
 
       - name: Setup Android SDK
         uses: android-actions/setup-android@v3
 
-      - name: Install project dependencies
-        working-directory: android-project/News-main
-        run: npm install
+      - name: Install npm dependencies
+        run: npm install --legacy-peer-deps
 
-      - name: Install fixed Capacitor version
-        working-directory: android-project/News-main
+      - name: Build web app
+        run: npm run build:web
+
+      - name: Initialize or Sync Capacitor Android project
         run: |
-          npm install --save-exact \
-            @capacitor/core@8.5.0 \
-            @capacitor/android@8.5.0
-
-          npm install --save-dev \
-            @capacitor/cli@8.5.0
-
-      - name: Verify toolchain
-        working-directory: android-project/News-main
-        run: |
-          echo "Node:"
-          node --version
-
-          echo "Java:"
-          java -version
-
-          echo "Capacitor:"
-          npx cap --version
-
-          echo "Config:"
-          cat capacitor.config.ts
-
-      - name: Build web application
-        working-directory: android-project/News-main
-        run: npx vite build
-
-      - name: Verify web build
-        working-directory: android-project/News-main
-        run: |
-          test -f dist/index.html
-          echo "Web build OK."
-
-      - name: Add Android platform
-        working-directory: android-project/News-main
-        run: npx cap add android
-
-      - name: Sync Capacitor
-        working-directory: android-project/News-main
-        run: npx cap sync android
-
-      - name: Verify Android configuration
-        working-directory: android-project/News-main
-        run: |
-          test -f android/gradlew
-          test -f android/settings.gradle
-
-          echo "Android project created successfully."
+          if [ ! -d "android" ]; then
+            npx cap add android
+          fi
+          npx cap sync android
 
       - name: Make Gradle executable
-        working-directory: android-project/News-main
         run: chmod +x android/gradlew
 
-      - name: Build Debug APK
-        working-directory: android-project/News-main/android
-        run: ./gradlew assembleDebug --stacktrace
+      - name: Build debug APK
+        working-directory: android
+        run: ./gradlew assembleDebug --no-daemon --stacktrace
 
-      - name: Verify APK
-        working-directory: android-project/News-main
-        run: |
-          echo "=== APK ==="
-          find android/app/build/outputs/apk/debug \
-            -type f \
-            -name "*.apk" \
-            -print
+      - name: Build release AAB
+        working-directory: android
+        run: ./gradlew bundleRelease --no-daemon --stacktrace
 
-          test -n "$(find android/app/build/outputs/apk/debug -type f -name '*.apk' -print -quit)"
-
-      - name: Upload APK
+      - name: Upload debug APK
         uses: actions/upload-artifact@v4
         with:
-          name: The-Reporter-Debug-APK
-          path: android-project/News-main/android/app/build/outputs/apk/debug/*.apk
+          name: News-Reporter-debug-apk
+          path: android/app/build/outputs/apk/debug/app-debug.apk
           if-no-files-found: error
-          retention-days: 30
+          retention-days: 14
+
+      - name: Upload release AAB
+        uses: actions/upload-artifact@v4
+        with:
+          name: News-Reporter-release-aab
+          path: android/app/build/outputs/bundle/release/app-release.aab
+          if-no-files-found: error
+          retention-days: 14

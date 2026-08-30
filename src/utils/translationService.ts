@@ -1,6 +1,8 @@
 // Instant Article Translation Service with smart multi-tier caching
 // Minimizes network bandwidth, saves battery/CPU, and guarantees instant re-translation
 
+import { fetchApi } from './api';
+
 interface TranslationResult {
   translatedTitle: string;
   translatedSummary: string;
@@ -92,7 +94,7 @@ export async function translateArticleContent(
   }
 
   try {
-    const res = await fetch('/api/translate', {
+    const res = await fetchApi('/api/translate', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({

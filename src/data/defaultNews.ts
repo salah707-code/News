@@ -1,14 +1,14 @@
 import { NewsArticle, NewsCategory, NewsSource } from '../types';
 
 export const DEFAULT_CATEGORIES: NewsCategory[] = [
-  { id: 'all', name: 'الكل', nameAr: 'جميع الأخبار', nameEn: 'All News', icon: 'Globe2' },
-  { id: 'world', name: 'أخبار العالم', nameAr: 'أخبار العالم', nameEn: 'World News', icon: 'Compass' },
-  { id: 'politics', name: 'سياسة', nameAr: 'السياسة', nameEn: 'Politics', icon: 'Landmark' },
-  { id: 'economy', name: 'اقتصاد', nameAr: 'اقتصاد', nameEn: 'Economy', icon: 'TrendingUp' },
-  { id: 'tech', name: 'تكنولوجيا', nameAr: 'تكنولوجيا', nameEn: 'Technology', icon: 'Cpu' },
-  { id: 'sports', name: 'رياضة', nameAr: 'الرياضة', nameEn: 'Sports', icon: 'Trophy' },
-  { id: 'health', name: 'صحة وعلوم', nameAr: 'صحة وعلوم', nameEn: 'Health & Science', icon: 'HeartPulse' },
-  { id: 'culture', name: 'ثقافة وفنون', nameAr: 'ثقافة وفنون', nameEn: 'Culture & Arts', icon: 'Palette' },
+  { id: 'all', name: 'الكل', nameAr: 'جميع الأخبار والمناطق', nameEn: 'All Locations & News', icon: 'Globe2' },
+  { id: 'palestine', name: 'فلسطين والقدس', nameAr: 'فلسطين والقدس', nameEn: 'Palestine & Jerusalem', icon: 'MapPin', badgeColor: 'bg-emerald-600' },
+  { id: 'gulf', name: 'الخليج العربي', nameAr: 'الخليج العربي واليمن', nameEn: 'Arabian Gulf & Yemen', icon: 'Compass', badgeColor: 'bg-amber-600' },
+  { id: 'egypt_levant', name: 'مصر والشام', nameAr: 'مصر وبلاد الشام والعراق', nameEn: 'Egypt & Levant', icon: 'Landmark', badgeColor: 'bg-sky-600' },
+  { id: 'maghreb', name: 'المغرب العربي', nameAr: 'المغرب العربي وشمال إفريقيا', nameEn: 'Maghreb & North Africa', icon: 'Flame', badgeColor: 'bg-rose-600' },
+  { id: 'middle_east', name: 'الشرق الأوسط', nameAr: 'الشرق الأوسط والعالم العربي', nameEn: 'Middle East', icon: 'Layers', badgeColor: 'bg-indigo-600' },
+  { id: 'world', name: 'دولي وعالمي', nameAr: 'أخبار العالم وأوروبا والأمريكتين', nameEn: 'International & Global', icon: 'Globe', badgeColor: 'bg-blue-600' },
+  { id: 'asia_world', name: 'آسيا والعالم', nameAr: 'آسيا وباقي العالم', nameEn: 'Asia & World', icon: 'Cpu', badgeColor: 'bg-teal-600' },
 ];
 
 export const DEFAULT_SOURCES: NewsSource[] = [
@@ -17,8 +17,8 @@ export const DEFAULT_SOURCES: NewsSource[] = [
     name: 'الجزيرة نت',
     nameEn: 'Al Jazeera',
     url: 'https://www.aljazeera.net',
-    rssUrl: 'https://www.aljazeera.net/aljazeerarss/a7c186be-1baa-4bd4-9d80-a84db769f779/73d0e1b4-532f-45ef-b135-bfdff8b8cab9',
-    category: 'all',
+    rssUrl: 'https://news.google.com/rss/search?q=site:aljazeera.net&hl=ar&gl=SA&ceid=SA:ar',
+    category: 'middle_east',
     iconName: 'Radio',
     enabled: true,
     isCustom: false,
@@ -31,12 +31,25 @@ export const DEFAULT_SOURCES: NewsSource[] = [
     nameEn: 'Al Arabiya',
     url: 'https://www.alarabiya.net',
     rssUrl: 'https://www.alarabiya.net/.mrss/ar/breaking-news.xml',
-    category: 'world',
+    category: 'gulf',
     iconName: 'Newspaper',
     enabled: true,
     isCustom: false,
-    country: 'السعودية / عربي',
+    country: 'السعودية / الخليج',
     color: '#7b1113'
+  },
+  {
+    id: 'palestine_today',
+    name: 'القدس الإخبارية',
+    nameEn: 'Al Quds News',
+    url: 'https://qudsn.co',
+    rssUrl: 'https://news.google.com/rss/search?q=فلسطين+القدس+غزة&hl=ar&gl=SA&ceid=SA:ar',
+    category: 'palestine',
+    iconName: 'Flame',
+    enabled: true,
+    isCustom: false,
+    country: 'فلسطين والقدس',
+    color: '#15803d'
   },
   {
     id: 'skynews_ar',
@@ -44,11 +57,11 @@ export const DEFAULT_SOURCES: NewsSource[] = [
     nameEn: 'Sky News Arabia',
     url: 'https://www.skynewsarabia.com',
     rssUrl: 'https://www.skynewsarabia.com/rss.xml',
-    category: 'politics',
+    category: 'gulf',
     iconName: 'Flame',
     enabled: true,
     isCustom: false,
-    country: 'الإمارات / عربي',
+    country: 'الإمارات / الخليج',
     color: '#e63946'
   },
   {
@@ -61,20 +74,72 @@ export const DEFAULT_SOURCES: NewsSource[] = [
     iconName: 'Tv',
     enabled: true,
     isCustom: false,
-    country: 'بريطانيا / عربي',
+    country: 'دولي / بريطانيا',
     color: '#bb1919'
   },
   {
-    id: 'asharq_econ',
-    name: 'اقتصاد الشرق',
-    nameEn: 'Asharq Business',
-    url: 'https://asharqbusiness.com',
-    rssUrl: 'https://asharqbusiness.com/rss',
-    category: 'economy',
+    id: 'hespress',
+    name: 'هسبريس',
+    nameEn: 'Hespress',
+    url: 'https://www.hespress.com',
+    rssUrl: 'https://www.hespress.com/feed',
+    category: 'maghreb',
+    iconName: 'Newspaper',
+    enabled: true,
+    isCustom: false,
+    country: 'المغرب العربي / المغرب',
+    color: '#3a0ca3'
+  },
+  {
+    id: 'almasry_alyoum',
+    name: 'المصري اليوم',
+    nameEn: 'Al Masry Al Youm',
+    url: 'https://www.almasryalyoum.com',
+    rssUrl: 'https://news.google.com/rss/search?q=مصر+القاهرة&hl=ar&gl=EG&ceid=EG:ar',
+    category: 'egypt_levant',
+    iconName: 'Newspaper',
+    enabled: true,
+    isCustom: false,
+    country: 'مصر وبلاد الشام / مصر',
+    color: '#1e3a8a'
+  },
+  {
+    id: 'dw_arabic',
+    name: 'DW عربية (ألمانيا)',
+    nameEn: 'Deutsche Welle Arabic',
+    url: 'https://www.dw.com/ar',
+    rssUrl: 'https://rss.dw.com/rdf/rss-ar-all',
+    category: 'world',
+    iconName: 'Globe',
+    enabled: true,
+    isCustom: false,
+    country: 'دولي / ألمانيا',
+    color: '#0284c7'
+  },
+  {
+    id: 'france24_ar',
+    name: 'فرانس 24 عربي',
+    nameEn: 'France 24 Arabic',
+    url: 'https://www.france24.com/ar',
+    rssUrl: 'https://www.france24.com/ar/rss',
+    category: 'world',
+    iconName: 'Tv',
+    enabled: true,
+    isCustom: false,
+    country: 'دولي / فرنسا',
+    color: '#0891b2'
+  },
+  {
+    id: 'asharq_news',
+    name: 'الشرق للأخبار',
+    nameEn: 'Asharq News',
+    url: 'https://asharq.com',
+    rssUrl: 'https://news.google.com/rss/search?q=site:asharq.com&hl=ar&gl=SA&ceid=SA:ar',
+    category: 'gulf',
     iconName: 'TrendingUp',
     enabled: true,
     isCustom: false,
-    country: 'اقتصاد عالمي',
+    country: 'الشرق الأوسط والخليج',
     color: '#1d3557'
   },
   {
@@ -82,27 +147,13 @@ export const DEFAULT_SOURCES: NewsSource[] = [
     name: 'رويترز (Reuters)',
     nameEn: 'Reuters Global',
     url: 'https://www.reuters.com',
-    rssUrl: 'https://www.reutersagency.com/feed/?best-topics=world',
+    rssUrl: 'https://news.google.com/rss/search?q=Reuters+breaking+news&hl=en-US&gl=US&ceid=US:en',
     category: 'world',
     iconName: 'Globe',
     enabled: true,
     isCustom: false,
     country: 'وكالة أنباء دولية',
     color: '#ff8000',
-    isForeign: true
-  },
-  {
-    id: 'tech_crunch_global',
-    name: 'تيك كرانش (TechCrunch)',
-    nameEn: 'TechCrunch',
-    url: 'https://techcrunch.com',
-    rssUrl: 'https://techcrunch.com/feed/',
-    category: 'tech',
-    iconName: 'Cpu',
-    enabled: true,
-    isCustom: false,
-    country: 'أمريكا / تقنية عالمية',
-    color: '#00a562',
     isForeign: true
   },
   {
@@ -117,286 +168,173 @@ export const DEFAULT_SOURCES: NewsSource[] = [
     isCustom: false,
     country: 'أمريكا / عربي',
     color: '#cc0000'
-  },
-  {
-    id: 'yallakora',
-    name: 'يلا كورة',
-    nameEn: 'YallaKora',
-    url: 'https://www.yallakora.com',
-    rssUrl: 'https://www.yallakora.com/rss',
-    category: 'sports',
-    iconName: 'Trophy',
-    enabled: true,
-    isCustom: false,
-    country: 'مصر / رياضة',
-    color: '#2a9d8f'
-  },
-  {
-    id: 'hespress',
-    name: 'هسبريس',
-    nameEn: 'Hespress',
-    url: 'https://www.hespress.com',
-    rssUrl: 'https://www.hespress.com/feed',
-    category: 'world',
-    iconName: 'Newspaper',
-    enabled: true,
-    isCustom: false,
-    country: 'المغرب / عربي',
-    color: '#3a0ca3'
   }
 ];
 
 export const INITIAL_ARTICLES: NewsArticle[] = [
   {
-    id: 'news-1',
-    title: 'قمة دولية كبرى لتعزيز حلول الطاقة النظيفة ومشاريع الهيدروجين الأخضر باستثمارات 120 مليار دولار',
-    summary: 'اختتام فعاليات المؤتمر الدولي للطاقة المتجددة بالاتفاق على حزمة استثمارات ضخمة لدعم مزارع الطاقة الشمسية وتطوير شبكات الربط الكهربائي الذكية بين القارات.',
-    fullContent: `شهدت العاصمة اليوم ختام القمة الدولية للطاقة النظيفة بمشاركة وزراء وممثلين عن أكثر من 80 دولة ومؤسسة مالية كبرى، حيث تم التوصل إلى اتفاقيات شراكة استراتيجية لضخ استثمارات تتجاوز 120 مليار دولار في مشاريع الهيدروجين الأخضر والطاقة الشمسية خلال السنوات الخمس القادمة.
+    id: 'news-palestine-1',
+    title: 'تطورات ميدانية واسعة في القدس والضفة وجهود إغاثية مكثفة لإعادة تأهيل البنية التحتية والمستشفيات',
+    summary: 'وفود إنسانية دولية تصل لمتابعة تنفيذ خطط الاستجابة الإغاثية العاجلة وتوزيع المستلزمات الطبية والوقود على المنشآت الحيوية في القدس ومحافظات الضفة وغزة.',
+    fullContent: `تتواصل في القدس والضفة الغربية والقطاع التحركات الإنسانية الحثيثة لدعم العائلات المتضررة وتأهيل خطوط المياه والكهرباء بالمراكز الطبية الحيوية، بإشراف المنظمات الإغاثية المشتركة.
 
-وأكد البيان الختامي للقمة على أهمية تسريع وتيرة التحول الطاقي العادل وتوفير التمويل الميسر للدول النامية، بالإضافة إلى تطوير البنية التحتية لشبكات الربط الكهربائي القاري والاعتماد على الذكاء الاصطناعي في إدارة توزيع الأحمال الكهربائية بكفاءة قصوى.
+وأكدت الهيئات الميدانية وصول شحنات جديدة من الأدوية والمولدات الكهربائية لتأمين استمرار العمل في غرف العمليات والطوارئ، مع توفير نقاط طبية متنقلة في مختلف الأحياء.
 
-وصرح المتحدث باسم المؤتمر أن هذه الخطوات تمثل نقطة تحول حقيقية لخفض الانبعاثات الكربونية وتحقيق أهداف الاستدامة العالمية بحلول عام 2030، مع إطلاق صندوق دعم الابتكار التكنولوجي في تقنيات تخزين الطاقة وتدوير البطاريات الصناعية.`,
-    author: 'طارق المنصوري',
-    source: 'اقتصاد الشرق',
-    sourceId: 'asharq_econ',
-    category: 'economy',
-    pubDate: new Date(Date.now() - 1000 * 60 * 12).toISOString(),
-    imageUrl: 'https://images.unsplash.com/photo-1509391365360-2e959784a276?auto=format&fit=crop&w=1200&q=80',
-    link: 'https://asharqbusiness.com',
+وشددت اللجان الميدانية على أهمية تضافر الجهود العربية والدولية لضمان التدفق المستمر للإمدادات الأساسية وتأمين المأوى العاجل للمتضررين دون انقطاع.`,
+    author: 'أحمد شاهين',
+    source: 'القدس الإخبارية',
+    sourceId: 'palestine_today',
+    category: 'palestine',
+    pubDate: new Date(Date.now() - 1000 * 60 * 8).toISOString(),
+    imageUrl: 'https://images.unsplash.com/photo-1541872703-74c5e44368f9?auto=format&fit=crop&w=1200&q=80',
+    link: 'https://qudsn.co',
     isBreaking: true,
     readTimeMinutes: 3,
-    viewsCount: 1840,
-    aiSummary: '• اتفاق دولي لاستثمار 120 مليار دولار في الطاقة النظيفة والهيدروجين الأخضر.\n• التركيز على دعم الدول النامية وتطوير شبكات الربط الكهربائي الذكية.\n• تأكيد خفض الانبعاثات والوصول إلى أهداف 2030.',
+    viewsCount: 3820,
+    aiSummary: '• تحركات إغاثية مكثفة لتأهيل المرافق الطبية والشبكات الأساسية.\n• وصول شحنات عاجلة من الوقود والمستلزمات الحيوية للمستشفيات.\n• مطالبات بتأمين ممرات دائمة للمساعدات الإنسانية.',
     aiKeyPoints: [
-      'استثمارات بـ 120 مليار دولار في مشاريع الطاقة المتجددة',
-      'مشاركة أكثر من 80 دولة ومؤسسة مالية كبرى',
-      'دمج الذكاء الاصطناعي في إدارة شبكات توزيع الكهرباء'
+      'وصول مستلزمات طبية وأدوية لغرف الطوارئ',
+      'تأهيل شبكات المياه والكهرباء في المناطق المتضررة',
+      'إشراف مباشر من الفرق الإغاثية الميدانية'
     ]
   },
   {
-    id: 'news-foreign-1',
-    title: 'Breakthrough Quantum Computing Architecture Solves Complex Molecular Simulations in Seconds',
-    summary: 'Leading international research teams unveil a fault-tolerant photonic quantum processor capable of simulating protein structures with unprecedented chemical accuracy.',
-    fullContent: `Quantum engineering scientists in Zurich and Boston have achieved a major scientific milestone by demonstrating a 1,000-qubit fault-tolerant quantum computing processor. The breakthrough allows researchers to calculate intricate molecular bonds and folding mechanisms in seconds, a feat that would take conventional supercomputers thousands of years.
+    id: 'news-gulf-1',
+    title: 'الخليج يطلق أضخم مجمع إقليمي للهيدروجين الأخضر ومشاريع الطاقة المتجددة باستثمارات 85 مليار دولار',
+    summary: 'تدشين تحالف خليجي صناعي مشترك لتصدير الطاقة النظيفة وتطوير شبكات الربط الكهربائي الذكية بين دول مجلس التعاون والأسواق العالمية.',
+    fullContent: `أعلنت دول مجلس التعاون الخليجي اليوم عن إطلاق مشروع استراتيجي مشترك لتطوير وتصدير الهيدروجين الأخضر ومزارع الطاقة الشمسية الكبرى باستثمارات أولية تبلغ 85 مليار دولار.
 
-The newly developed architecture implements topological error correction, allowing continuous coherence during computation without quantum state degradation. Pharmaceutical partners have already commenced testing the platform for accelerated enzyme design and drug discovery targeting rare diseases.
+ويهدف المشروع إلى ترسيخ مكانة الخليج كمركز عالمي رائد للطاقة المستدامة والتقنيات البيئية الخالية من الانبعاثات، مع تأسيس مراكز أبحاث متخصصة في تقنيات تخزين الطاقة وتدوير الكربون.
 
-"This is not just an incremental step; it marks the transition of quantum technology from experimental physics into a practical industrial and medical powerhouse," stated the lead investigator during the European Quantum Summit.`,
-    translatedTitle: 'معمارية حوسبة كمومية ثورية تنجح في محاكاة التفاعلات الجزيئية المعقدة في ثوانٍ معدودة',
-    translatedSummary: 'فرق بحثية دولية تكشف عن معالج كمومي ضوئي قادر على محاكاة طي البروتينات والمركبات الدوائية بدقة كيميائية فائقة وسرعة غير مسبوقة.',
-    translatedFullContent: `حقق علماء الهندسة الكمومية في زيورخ وبوسطن إنجازاً علمياً تاريخياً بتشغيل معالج كمومي يتحمل الأخطاء ويحتوي على 1000 كيوبت مستقر. يتيح هذا الإنجاز محاكاة الروابط الجزيئية الدقيقة وآليات طي البروتين في ثوانٍ، وهي مهام كانت تتطلب آلاف السنين من الحواسيب الفائقة التقليدية.
-
-تعتمد المعمارية الجديدة على تقنيات تصحيح الأخطاء الطوبولوجية، مما يحافظ على استقرار الحسابات دون انهيار الحالات الكمومية. وبدأت شركات الأدوية العالمية بالفعل في استخدام المنصة لتسريع تصميم الأنزيمات واكتشاف أدوية فعالة للأمراض النادرة.
-
-وصرح رئيس الفريق البحثي: "هذه النقلة تمثل تحول تقنيات الكم من مجرد تجارب فيزيائية معملية إلى أداة صناعية وطبية ذات تأثير هائل في حياة البشر".`,
-    author: 'Sarah Jenkins',
-    source: 'تيك كرانش (TechCrunch)',
-    sourceId: 'tech_crunch_global',
-    category: 'tech',
-    isForeign: true,
-    originalLanguage: 'en',
-    pubDate: new Date(Date.now() - 1000 * 60 * 20).toISOString(),
-    imageUrl: 'https://images.unsplash.com/photo-1635070041078-e363dbe005cb?auto=format&fit=crop&w=1200&q=80',
-    link: 'https://techcrunch.com',
+وأوضح وزراء الطاقة المشاركون أن هذا التعاون يعكس الرؤية التنموية الحديثة لدول المنطقة نحو تنويع مصادر الاقتصاد وجذب رؤوس الأموال التقنية المتقدمة.`,
+    author: 'سعود الفهد',
+    source: 'العربية',
+    sourceId: 'alarabiya',
+    category: 'gulf',
+    pubDate: new Date(Date.now() - 1000 * 60 * 18).toISOString(),
+    imageUrl: 'https://images.unsplash.com/photo-1509391365360-2e959784a276?auto=format&fit=crop&w=1200&q=80',
+    link: 'https://www.alarabiya.net',
     isBreaking: true,
     readTimeMinutes: 4,
-    viewsCount: 4210,
-    aiSummary: '• ابتكار معالج كمومي عالي الدقة لمحاكاة الجزيئات المعقدة في ثوانٍ.\n• فتح آفاق لتسريع ابتكار الأدوية وتصميم الأنزيمات الطبية.\n• حل مشكلة الأخطاء الكمومية واستقرار المعالجة.',
+    viewsCount: 4120,
+    aiSummary: '• استثمار 85 مليار دولار في إنتاج وتصدير الهيدروجين الأخضر.\n• تعزيز الربط الكهربائي الإقليمي وتطوير تقنيات الطاقة المستدامة.\n• ترسيخ مكانة الخليج العربي كمركز عالمي للطاقة النظيفة.',
     aiKeyPoints: [
-      'معالج كمومي 1000 كيوبت عالي الاستقرار',
-      'محاكاة كيميائية في ثوانٍ تختصر عقوداً من العمل',
-      'تطبيقات واعدة في علاج الأمراض وتطوير المواد المتقدمة'
+      'تحالف صناعي خليجي مشترك للطاقة النظيفة',
+      'بناء مزارع شمسية ومراكز بحثية للطاقة المستقبلية',
+      'خفض البصمة الكربونية وتوطين الصناعات المتقدمة'
     ]
   },
   {
-    id: 'news-2',
-    title: 'انطلاق الجولة الحاسمة في دوري أبطال أوروبا وسط حضور جماهيري قياسي وترقب تكتيكي كبير',
-    summary: 'مواجهات نارية تجمع عمالقة الكرة الأوروبية في سهرات كروية مشتعلة، والمدربون يضعون آخر اللمسات التكتيكية لحسم بطاقات التأهل إلى المربع الذهبي.',
-    fullContent: `تتجه أنظار عشاق الساحرة المستديرة مساء اليوم إلى الملاعب الأوروبية التي تحتضن مواجهات الإياب الحاسمة في ربع نهائي دوري أبطال أوروبا، في ليلة ينتظر أن تشهد إثارة كروية بالغة ومنافسة شرسة على خطف بطاقات التأهل.
+    id: 'news-egypt-1',
+    title: 'مصر وبلاد الشام تدشن شبكة الموانئ الجافة وقطارات الشحن السريعة لتعزيز التجارة البينية',
+    summary: 'بدء التشغيل التجريبي للربط اللوجستي السككي بين المراكز الصناعية والموانئ البحرية المطلة على البحر المتوسط والأحمر لتقليص زمن النقل بنسبة 65%.',
+    fullContent: `أعلنت وزارات النقل والتجارة في مصر وبلاد الشام عن تدشين أولى مراحل الممر اللوجستي المتكامل الذي يربط شبكات السكك الحديدية السريعة بالموانئ الجافة والمناطق الصناعية الكبرى.
 
-وتشهد الملاعب مواجهات من العيار الثقيل بعد نتائج الذهاب المتقاربة التي تركت كل الاحتمالات مفتوحة على مصراعيها. وعكف المدربون خلال التدريبات الأخيرة على معالجة الثغرات الدفاعية وتعزيز الفاعلية الهجومية من خلال الكرات الثابتة والضغط العالي في مناطق المنافس.
+تسهم المنظومة الجديدة في تسريع تدفق الصادرات والواردات، وخفض تكاليف سلاسل الإمداد بنسبة تفوق 65%، إلى جانب تقليل الانبعاثات عبر اعتماد القاطرات الكهربائية الحديثة.
 
-وأكد نجوم الفرق جاهزيتهم التامة لخوض هذا التحدي الحاسم وسط حضور جماهيري قياسي متوقع في كافة الملاعب المستضيفة وتغطية إعلامية عالمية غير مسبوقة.`,
-    author: 'كريم الشناوي',
-    source: 'يلا كورة',
-    sourceId: 'yallakora',
-    category: 'sports',
-    pubDate: new Date(Date.now() - 1000 * 60 * 35).toISOString(),
-    imageUrl: 'https://images.unsplash.com/photo-1574629810360-7efbbe195018?auto=format&fit=crop&w=1200&q=80',
-    link: 'https://www.yallakora.com',
+كما تم ربط المراكز الجمركية بأنظمة فحص وتخليص رقمية مؤتمتة تعمل بالذكاء الاصطناعي لتسهيل حركة البضائع وتنشيط التبادل التجاري الإقليمي.`,
+    author: 'محمود عبد الرازق',
+    source: 'المصري اليوم',
+    sourceId: 'almasry_alyoum',
+    category: 'egypt_levant',
+    pubDate: new Date(Date.now() - 1000 * 60 * 32).toISOString(),
+    imageUrl: 'https://images.unsplash.com/photo-1486406146926-c627a92ad1ab?auto=format&fit=crop&w=1200&q=80',
+    link: 'https://www.almasryalyoum.com',
+    isBreaking: false,
+    readTimeMinutes: 3,
+    viewsCount: 2740,
+    aiSummary: '• تدشين شبكة لوجستية وسككية متطورة تربط الموانئ بالمراكز الصناعية.\n• خفض زمن الشحن وتكاليف سلاسل الإمداد بنسبة 65%.\n• أتمتة الإجراءات الجمركية لتعزيز التجارة البينية.',
+    aiKeyPoints: [
+      'ربط الموانئ البحرية بالمناطق الصناعية عبر شبكة قطارات كهربائية',
+      'تقليص ملحوظ في تكاليف الشحن وزمن الترانزيت',
+      'تطبيق الرقمنة الشاملة لتسريع الإفراج الجمركي'
+    ]
+  },
+  {
+    id: 'news-maghreb-1',
+    title: 'المغرب العربي وشمال إفريقيا: مشاريع كبرى في البنية التحتية والربط القاري وتصنيع السيارات والبطاريات',
+    summary: 'توسع صناعي هائل في المنطقة مع افتتاح مصانع متقدمة للسيارات الكهربائية ومجمعات للطاقة الشمسية تربط بين المغرب وتونس وشمال القارة الإفريقية.',
+    fullContent: `تشهد بلدان المغرب العربي وشمال إفريقيا حراكاً اقتصادياً واستثمارياً غير مسبوق بعد استقطاب كبرى الشركات العالمية لإنشاء مصانع لبطاريات السيارات الكهربائية ومكونات الطيران.
+
+وتتضمن الخطط التنموية تعزيز شبكات الطرق السريعة والموانئ المحورية في طنجة المتوسط والدار البيضاء وتونس، لرفع القدرة الاستيعابية لحركة الملاحة والتجارة الدولية مع أوروبا وإفريقيا.
+
+وأكدت التقارير الاقتصادية أن هذه الاستثمارات توفر آلاف فرص العمل للكوادر الهندسية والتقنية الشابة وتدعم مكانة المنطقة كبوابة تجارية عالمية.`,
+    author: 'سفيان العلمي',
+    source: 'هسبريس',
+    sourceId: 'hespress',
+    category: 'maghreb',
+    pubDate: new Date(Date.now() - 1000 * 60 * 45).toISOString(),
+    imageUrl: 'https://images.unsplash.com/photo-1579783902614-a3fb3927b675?auto=format&fit=crop&w=1200&q=80',
+    link: 'https://www.hespress.com',
     isBreaking: false,
     readTimeMinutes: 4,
-    viewsCount: 3890,
-    aiSummary: '• انطلاق مباريات الإياب الحاسمة لربع نهائي دوري أبطال أوروبا.\n• منافسة مفتوحة ومتقاربة بعد نتائج جولة الذهاب.\n• تركيز فني مكثف من المدربين لحسم التأهل.',
+    viewsCount: 3120,
+    aiSummary: '• طفرة صناعية في المغرب وشمال إفريقيا في مجال تصنيع السيارات والطاقات النظيفة.\n• توسعة الموانئ وشبكات الربط القاري مع الأسواق الأوروبية والإفريقية.\n• توفير آلاف الوظائف النوعية للشباب والمهندسين.',
     aiKeyPoints: [
-      'مواجهات حاسمة لحجز بطاقات نصف النهائي',
-      'حضور جماهيري ضخم في مختلف الملاعب',
-      'تعديلات تكتيكية مكثفة لتعزيز الكفاءة الهجومية'
+      'افتتاح مصانع متقدمة لبطاريات ومكونات النقل الكهربائي',
+      'تطوير البنية التحتية لموانئ طنجة والمراكز اللوجستية',
+      'تعزيز مكانة المنطقة كمحور تجاري واستثماري قاري'
     ]
   },
   {
-    id: 'news-foreign-2',
-    title: 'Global Central Banks Coordinate Policy Framework as Inflation Signals Stabilize Worldwide',
-    summary: 'Financial regulators and central bankers agree on unified monetary guidelines to spur sustainable economic growth and navigate digital currency integration.',
-    fullContent: `International financial leaders concluded a multilateral monetary policy summit in London today, agreeing on a shared framework to navigate stabilizing global inflation while bolstering supply chain resilience.
+    id: 'news-world-1',
+    title: 'قمة دولية في جنيف لبحث الاستقرار المالي وتنسيق السياسات النقدية لدعم النمو العالمي',
+    summary: 'محافظو البنوك المركزية والمؤسسات المالية الدولية يتفقون على خطة عمل موحدة لضمان استقرار سلاسل التوريد والحد من التضخم العالمي.',
+    fullContent: `اختتمت في جنيف اليوم أعمال القمة المالية الدولية بمشاركة قادة البنوك المركزية وممثلي المؤسسات النقدية الكبرى، حيث تم الاتفاق على حزمة إجراءات منسقة لدعم السيولة الاستثمارية.
 
-The communique highlighted positive trends across major consumer indexes, alongside strategic measures to safeguard credit liquidity for small and medium enterprises. The governors also reviewed shared benchmarks for digital sovereign currencies (CBDCs) and cross-border settlement rails.
+وأكد البيان الختامي على تحسن المؤشرات الاقتصادية العامة واستقرار أسواق الصرف، مع دعوة لتسهيل الائتمان للمؤسسات الصغيرة ودعم التحول نحو العملات الرقمية المؤمنة.
 
-Analysts noted that the consensus provides long-awaited clarity to capital markets, with major stock indices responding positively across Asian and European trading desks.`,
-    translatedTitle: 'البنوك المركزية الكبرى تنسق سياساتها النقدية لدعم النمو الاقتصادي واستقرار الأسواق المالية',
-    translatedSummary: 'صناع السياسات المالية الدولية يتفقون على توجيهات موحدة لتشجيع الاستثمار والتعامل مع التحول الرقمي وتخفيف أعباء التضخم العالمي.',
-    translatedFullContent: `اختتم محافظو البنوك المركزية والمؤسسات المالية الدولية قمتهم المشتركة في لندن اليوم، بالاتفاق على إطار عمل متكامل يدعم النمو الاقتصادي المستدام بعد عودة معدلات التضخم إلى مستويات مقبولة.
-
-وأكد البيان الختامي المشترك على استقرار مؤشرات أسعار المستهلكين، وضرورة تيسير الائتمان للشركات المتوسطة والصغيرة مع تسريع اعتماد المعايير الموحدة للمدفوعات الرقمية والعملات المركزية المؤمنة.
-
-ولاقى هذا التنسيق ارتياحاً كبيراً في البورصات وأسواق الأسهم العالمية التي سجلت مكاسب جماعية مدفوعة بوضوح مسار أسعار الفائدة والسيولة الاستثمارية.`,
+ولاقى هذا التنسيق ترحيباً واسعاً في الأسواق المالية العالمية التي سجلت مؤشراتها الرئيسية مكاسب ملحوظة في أسواق آسيا وأوروبا.`,
     author: 'David Miller',
     source: 'رويترز (Reuters)',
     sourceId: 'reuters_global',
-    category: 'economy',
+    category: 'world',
     isForeign: true,
     originalLanguage: 'en',
-    pubDate: new Date(Date.now() - 1000 * 60 * 50).toISOString(),
+    translatedTitle: 'قمة دولية في جنيف لبحث الاستقرار المالي وتنسيق السياسات النقدية لدعم النمو العالمي',
+    translatedSummary: 'محافظو البنوك المركزية والمؤسسات المالية الدولية يتفقون على خطة عمل موحدة لضمان استقرار سلاسل التوريد والحد من التضخم العالمي.',
+    translatedFullContent: `اختتمت في جنيف اليوم أعمال القمة المالية الدولية بمشاركة قادة البنوك المركزية وممثلي المؤسسات النقدية الكبرى، حيث تم الاتفاق على حزمة إجراءات منسقة لدعم السيولة الاستثمارية.
+
+وأكد البيان الختامي على تحسن المؤشرات الاقتصادية العامة واستقرار أسواق الصرف، مع دعوة لتسهيل الائتمان للمؤسسات الصغيرة ودعم التحول نحو العملات الرقمية المؤمنة.
+
+ولاقى هذا التنسيق ترحيباً واسعاً في الأسواق المالية العالمية التي سجلت مؤشراتها الرئيسية مكاسب ملحوظة في أسواق آسيا وأوروبا.`,
+    pubDate: new Date(Date.now() - 1000 * 60 * 60).toISOString(),
     imageUrl: 'https://images.unsplash.com/photo-1611974789855-9c2a0a7236a3?auto=format&fit=crop&w=1200&q=80',
     link: 'https://www.reuters.com',
     isBreaking: false,
     readTimeMinutes: 3,
-    viewsCount: 2980,
-    aiSummary: '• اتفاق البنوك المركزية على مسار نقدي موحد يدعم الاستقرار.\n• تراجع الضغوط التضخمية وتوقعات إيجابية لنمو الأسواق.\n• تسهيل الائتمان التجاري ودمج تقنيات الدفع الحديثة.',
+    viewsCount: 2890,
+    aiSummary: '• اتفاق دولي على تنسيق السياسات النقدية وحماية استقرار الأسواق.\n• استقرار مؤشرات التضخم وتفاؤل بنمو الاقتصاد العالمي.\n• دعم الائتمان التجاري وتبني المعايير الرقمية الحديثة.',
     aiKeyPoints: [
-      'تنسيق دولي بين البنوك المركزية الكبرى',
-      'استقرار مؤشرات الأسعار والبورصات',
-      'تفاؤل استثماري يدعم المشاريع الاقتصادية'
+      'تنسيق مشترك بين البنوك المركزية والمؤسسات النقدية',
+      'ارتفاع مؤشرات الأسواق المالية العالمية عقب الإعلان',
+      'تسهيلات للمؤسسات الصغيرة والتحول الرقمي'
     ]
   },
   {
-    id: 'news-4',
-    title: 'مشاورات دبلوماسية مكثفة في الأمم المتحدة لتعزيز الاستقرار الإقليمي وفتح الممرات الإنسانية',
-    summary: 'انعقاد جلسة طارئة لمجلس الأمن لبحث جهود التهدئة وتسهيل وصول المساعدات الإغاثية إلى المناطق المتضررة، ومطالبات بوقف فوري للتصعيد.',
-    fullContent: `تتواصل في مقر الأمم المتحدة بنيويورك جلسات المشاورات والاتصالات الدبلوماسية رفيعة المستوى بهدف صياغة قرار أممي موحد يدعم جهود السلام وفتح ممرات إنسانية آمنة لنقل الإمدادات الغذائية والطبية.
+    id: 'news-asia-1',
+    title: 'طوكيو وسيول تعلنان ابتكار معالج كمومي ضوئي فائق الكفاءة لمعالجة البيانات المعقدة',
+    summary: 'فريق بحثي آسيوي مشترك ينجح في تشغيل أول معالج كمومي ضوئي قادر على إجراء تريليونات العمليات الحسابية في ثوانٍ معدودة باستهلاك طاقة منخفض.',
+    fullContent: `كشفت مراكز الأبحاث المتقدمة في طوكيو وسيول عن تطوير معالج حوسبة كمومية ضوئية ثوري يتفوق على أسرع الحواسيب الفائقة بمعدل ألف ضعف في معالجة خوارزميات الذكاء الاصطناعي والتشفير.
 
-وشدد المندوبون خلال كلماتهم على ضرورة الامتثال الكامل للقوانين الدولية وحماية المدنيين والبنية التحتية الحيوية، مع التأكيد على الدور المحوري للمنظمات الدولية والإغاثية في الميدان.
+ويعتمد المعالج الجديد على الفوتونات الضوئية بدلاً من الإلكترونات التقليدية، مما يقلل الانبعاثات الحرارية ويسمح بتشغيله في درجات الحرارة العادية دون الحاجة لأنظمة تبريد فائق معقدة.
 
-وأكدت الوفود المشاركة على ضرورة تفعيل آليات الرقابة الميدانية المستقلة وتأمين قوافل الإغاثة الإنسانية العاجلة لضمان وصولها السريع للمتضررين دون عوائق.`,
-    author: 'جمال عبد العزيز',
-    source: 'الجزيرة نت',
-    sourceId: 'aljazeera',
-    category: 'politics',
-    pubDate: new Date(Date.now() - 1000 * 60 * 70).toISOString(),
-    imageUrl: 'https://images.unsplash.com/photo-1541872703-74c5e44368f9?auto=format&fit=crop&w=1200&q=80',
-    link: 'https://www.aljazeera.net',
-    isBreaking: false,
-    readTimeMinutes: 3,
-    viewsCount: 3150,
-    aiSummary: '• مشاورات بمجلس الأمن لدعم جهود التهدئة الدولية.\n• مطالبات ملحة بفتح ممرات إنسانية آمنة وحماية المدنيين.\n• مساعٍ حثيثة لصياغة قرار أممي موحد.',
-    aiKeyPoints: [
-      'جلسة طارئة بالأمم المتحدة لتعزيز الاستقرار',
-      'تأكيد حماية المنشآت الحيوية والمدنيين',
-      'تسهيل عمل المنظمات الإغاثية والطبية'
-    ]
-  },
-  {
-    id: 'news-5',
-    title: 'اكتشاف علمي واعد في مجال العلاج المناعي للأمراض المزمنة بنسبة تحسن 85%',
-    summary: 'فريق بحثي طبي يتوصل إلى بروتين طبيعي يحفز خلايا الجسم الدفاعية لمقاومة الالتهابات المزمنة دون أعراض جانبية، ونتائج التجارب السريرية تظهر نجاحاً باهراً.',
-    fullContent: `نشرت الدورية الطبية المرموقة اليوم نتائج دراسة علمية رائدة قادها باحثون في علم المناعة والجينات، أظهرت فعالية استثنائية لمركب بيولوجي طبيعي في تنشيط المستقبلات المناعية.
-
-وأوضحت التجارب السريرية للمرحلة الثانية أن العلاج الجديد قادر على خفض معدلات الالتهاب المزمن بنسبة تفوق 85%، مع الحفاظ على توازن الخلايا السليمة وتجنب الآثار الجانبية الشائعة في العلاجات التقليدية.
-
-ويتوقع الخبراء أن يمهد هذا الاكتشاف الطريق لجيل جديد من الأدوية الذكية المستهدفة خلال العامين المقبلين، مما يخفف معاناة الملايين حول العالم.`,
-    author: 'د. ليلى الفاسي',
-    source: 'سكاي نيوز عربية',
-    sourceId: 'skynews_ar',
-    category: 'health',
-    pubDate: new Date(Date.now() - 1000 * 60 * 95).toISOString(),
-    imageUrl: 'https://images.unsplash.com/photo-1532938911079-1b06ac7ceec7?auto=format&fit=crop&w=1200&q=80',
-    link: 'https://www.skynewsarabia.com',
-    isBreaking: false,
-    readTimeMinutes: 4,
-    viewsCount: 2240,
-    aiSummary: '• اكتشاف مركب بيولوجي يحفز المناعة لمقاومة الالتهابات المزمنة.\n• نتائج التجارب السريرية تحقق نسبة استجابة 85% بدون آثار جانبية.\n• أفق واعد لأدوية مناعية ذكية في المستقبل القريب.',
-    aiKeyPoints: [
-      'تطوير بروتين مناعي ذكي يستهدف الخلايا المتضررة',
-      'تحسن بنسبة 85% في نتائج التجارب السريرية',
-      'تقليل كبير في الآثار الجانبية مقارنة بالعلاجات التقليدية'
-    ]
-  },
-  {
-    id: 'news-6',
-    title: 'معرض الفن المعاصر يفتتح دورته الجديدة بمشاركة نخبة من المبدعين والتشكيليين',
-    summary: 'تنوع فني بديع يجمع بين الخط العربي الأصيل، الفنون التشكيلية الرقمية، والتجهيزات الفراغية التفاعلية التي تروي قصص الهوية والتراث بأسلوب عصري جذاب.',
-    fullContent: `افتتحت في دار الفنون التشكيلية فعاليات بينالي الفن العربي المعاصر بمشاركة أكثر من 150 فناناً وفنانة من مختلف البلدان العربية، مقدمين أكثر من 300 عمل فني مميز.
-
-تتنوع المعروضات بين لوحات زيتية، ومنحوتات رخامية وبرونزية، وأعمال رقمية تعتمد على الواقع المعزز لتجسيد التراث الثقافي العريق بأسلوب بصري حديث.
-
-ويشهد المعرض إقامة ورش عمل تفاعلية وندوات نقدية مفتوحة للجمهور والمهتمين بالصناعات الإبداعية طوال فترة انعقاده.`,
-    author: 'نادية بدران',
+ويفتح هذا التطور آفاقاً واعدة لتسريع اكتشاف المواد المتقدمة وتطوير نماذج محاكاة المناخ وتصميم الأدوية الجينية بدقة متناهية.`,
+    author: 'Kenji Tanaka',
     source: 'بي بي سي عربي',
     sourceId: 'bbc_ar',
-    category: 'culture',
-    pubDate: new Date(Date.now() - 1000 * 60 * 130).toISOString(),
-    imageUrl: 'https://images.unsplash.com/photo-1579783902614-a3fb3927b675?auto=format&fit=crop&w=1200&q=80',
+    category: 'asia_world',
+    pubDate: new Date(Date.now() - 1000 * 60 * 80).toISOString(),
+    imageUrl: 'https://images.unsplash.com/photo-1635070041078-e363dbe005cb?auto=format&fit=crop&w=1200&q=80',
     link: 'https://www.bbc.com/arabic',
     isBreaking: false,
-    readTimeMinutes: 3,
-    viewsCount: 1420,
-    aiSummary: '• افتتاح الدورة الجديدة لبينالي الفن العربي المعاصر بمشاركة 150 فناناً.\n• دمج التراث والخط العربي مع التقنيات الرقمية والواقع المعزز.\n• ورش تفاعلية وحوارات ثقافية مثرية لجميع الزوار.',
+    readTimeMinutes: 4,
+    viewsCount: 3450,
+    aiSummary: '• ابتكار معالج كمومي ضوئي فائق السرعة يعمل في درجات الحرارة العادية.\n• قدرة على معالجة البيانات المعقدة وخوارزميات الذكاء الاصطناعي بكفاءة قصوى.\n• تطبيقات واعدة في علوم المواد والتنبؤ بالمناخ والأبحاث الجينية.',
     aiKeyPoints: [
-      'مشاركة واسعة لأكثر من 150 مبدعاً عربياً',
-      'دمج الفنون التقليدية مع التقنيات التفاعلية',
-      'برنامج ثقافي غني بالورش والندوات النقدية'
-    ]
-  },
-  {
-    id: 'news-7',
-    title: 'تطورات كبرى في البنية التحتية والمدن الذكية والربط اللوجستي الإقليمي',
-    summary: 'تدشين موانئ جافة جديدة وشبكات سكك حديدية فائقة السرعة لربط المراكز الصناعية بالموانئ البحرية وتقليل زمن الشحن بنسبة 60%.',
-    fullContent: `أعلنت الهيئات الاقتصادية والتنموية اليوم عن بدء التشغيل التجريبي لمنظومة النقل السككي فائق السرعة والموانئ الجافة الذكية التي تربط المناطق الصناعية الكبرى بالمرافئ البحرية.
-
-تسهم هذه المشاريع الحيوية في تقليص زمن وتكلفة نقل البضائع بنسبة تفوق 60%، مع تقليل البصمة الكربونية لقطاع الشحن عبر الاعتماد على قاطرات كهربائية متطورة تعمل بالطاقة النظيفة.
-
-كما تتضمن المنظومة مراكز لوجستية مؤتمتة بالكامل مزودة بأنظمة التتبع الذكي والفحص الجمركي الفوري عبر الذكاء الاصطناعي.`,
-    author: 'سفيان العلمي',
-    source: 'هسبريس',
-    sourceId: 'hespress',
-    category: 'economy',
-    pubDate: new Date(Date.now() - 1000 * 60 * 160).toISOString(),
-    imageUrl: 'https://images.unsplash.com/photo-1486406146926-c627a92ad1ab?auto=format&fit=crop&w=1200&q=80',
-    link: 'https://www.hespress.com',
-    isBreaking: false,
-    readTimeMinutes: 3,
-    viewsCount: 2610,
-    aiSummary: '• إطلاق منظومة النقل اللوجستي الذكي وسكك الحديد السريعة.\n• خفض تكلفة وزمن الشحن بنسبة 60% مع استخدام الطاقة النظيفة.\n• مراكز لوجستية مؤتمتة بالكامل مدعومة بالذكاء الاصطناعي.',
-    aiKeyPoints: [
-      'ربط المناطق الصناعية بالموانئ البحرية بكفاءة عالية',
-      'تقليل البصمة الكربونية لقطاع النقل والشحن',
-      'أتمتة الفحص الجمركي والتتبع اللوجستي'
-    ]
-  },
-  {
-    id: 'news-8',
-    title: 'إنجازات لافتة في سباقات ألعاب القوى والسباحة الدولية وتتويج بميداليات ذهبية جديدة',
-    summary: 'أبطال وبطلات العرب يرفعون الراية عالياً في بطولة العالم محققين أرقاماً قياسية جديدة وسط إشادات واسعة بالانضباط والتفوق الرياضي.',
-    fullContent: `حقق أبطال الرياضة العربية إنجازاً تاريخياً مشرفاً في بطولة ألعاب القوى والسباحة الدولية المقامة حالياً، بعد حصد ثلاث ميداليات ذهبية وفضية في سباقات المسافات المتوسطة والسباحة الحرة.
-
-وسجل الرياضيون أرقاماً قياسية غير مسبوقة على الصعيد الإقليمي والدولي، مؤكدين تطور البرامج التدريبية المتقدمة والإعداد البدني والنفسي الفائق الذي سبق خوض غمار البطولة.
-
-وأشادت اللجان الأولمبية الدولية بالمستوى الفني المتقدم الذي أظهره المتنافسون، والروح الرياضية العالية التي عكست التطور المتسارع للرياضة في المنطقة.`,
-    author: 'سعيد العتيبي',
-    source: 'العربية',
-    sourceId: 'alarabiya',
-    category: 'sports',
-    pubDate: new Date(Date.now() - 1000 * 60 * 200).toISOString(),
-    imageUrl: 'https://images.unsplash.com/photo-1461896836934-ffe607ba8211?auto=format&fit=crop&w=1200&q=80',
-    link: 'https://www.alarabiya.net',
-    isBreaking: true,
-    readTimeMinutes: 3,
-    viewsCount: 4520,
-    aiSummary: '• إنجاز عربي رياضي بحصد ميداليات ذهبية في بطولة العالم.\n• تسجيل أرقام قياسية جديدة في ألعاب القوى والسباحة.\n• إشادة دولية بالمستوى الفني والإعداد البدني المتميز.',
-    aiKeyPoints: [
-      'ثلاث ميداليات ذهبية وفضية للأبطال العرب',
-      'أرقام قياسية إقليمية ودولية جديدة',
-      'استعدادات متقدمة تؤتي ثمارها في البطولات العالمية'
+      'معالجة ضوئية تقلل استهلاك الطاقة وتلغي الحاجة للتبريد المعقد',
+      'سرعة فائقة تتجاوز الحواسيب التقليدية بآلاف المرات',
+      'تعاون علمي وبحثي مشترك بين كبرى الجامعات الآسيوية'
     ]
   }
 ];

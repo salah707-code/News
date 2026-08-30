@@ -13,6 +13,7 @@ import {
 import { NewsArticle, AppSettings } from '../types';
 import { THEME_CONFIG, FONT_SIZES, getBackgroundClasses } from '../utils/themeColors';
 import { getTranslation } from '../utils/translations';
+import { translateArticleContent } from '../utils/translationService';
 import { getDistinctArticleImage } from '../utils/newsImages';
 import { CachedImage } from './CachedImage';
 import { motion, useAnimation, PanInfo } from 'motion/react';
@@ -85,22 +86,10 @@ export const ArticleCard: React.FC<ArticleCardProps> = ({
     }
     try {
       setIsTranslating(true);
-      const res = await fetch('/api/translate', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          title: article.title,
-          summary: article.summary,
-          fullContent: article.fullContent,
-          targetLang: 'ar'
-        })
-      });
-      if (res.ok) {
-        const data = await res.json();
-        article.translatedTitle = data.translatedTitle || article.title;
-        article.translatedSummary = data.translatedSummary || article.summary;
-        article.translatedFullContent = data.translatedFullContent || article.fullContent;
-      }
+      const res = await translateArticleContent(article, 'ar');
+      article.translatedTitle = res.translatedTitle;
+      article.translatedSummary = res.translatedSummary;
+      article.translatedFullContent = res.translatedFullContent;
       setIsTranslated(true);
     } catch (err) {
       setIsTranslated(true);

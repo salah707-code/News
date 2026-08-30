@@ -15,6 +15,7 @@ import {
 import { NewsSource, AppSettings, NewsCategory } from '../types';
 import { THEME_CONFIG, getBackgroundClasses } from '../utils/themeColors';
 import { getTranslation } from '../utils/translations';
+import { fetchApi } from '../utils/api';
 import { motion, AnimatePresence } from 'motion/react';
 
 interface SourceManagerModalProps {
@@ -64,7 +65,7 @@ export const SourceManagerModal: React.FC<SourceManagerModalProps> = ({
     if (rssUrl.trim()) {
       setIsTestingRss(true);
       try {
-        const res = await fetch('/api/rss', {
+        const res = await fetchApi('/api/rss', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ url: rssUrl.trim() })
